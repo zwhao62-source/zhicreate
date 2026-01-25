@@ -57,50 +57,98 @@ export async function POST(request: NextRequest) {
     const basePrompt = templatePrompts[template] || templatePrompts.showcase;
     const stylePrompt = stylePrompts[style] || stylePrompts.minimalist;
 
-    // 构建完整提示词
-    let fullPrompt = `Create a professional e-commerce product detail page design. ${basePrompt} ${stylePrompt}`;
-    
-    // 添加卖点信息
+    // 解析卖点，按行分割并提取有效卖点
+    let parsedPoints: string[] = [];
     if (sellingPoints) {
-      fullPrompt += ` Product features to highlight: ${sellingPoints}. `;
+      const lines = sellingPoints.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      
+      // 提取卖点内容（去除数字编号和点号）
+      parsedPoints = lines
+        .map(line => {
+          // 匹配开头的数字编号（如 "1. "、"1、"等）
+          const match = line.match(/^\d+[\.\、]\s*(.+)/);
+          if (match) {
+            return match[1].trim();
+          }
+          return line;
+        })
+        .filter(point => point.length > 2); // 过滤太短的内容
     }
 
-    // 添加质量提示
-    if (quality >= 90) {
-      fullPrompt += 'Ultra high quality, photorealistic, 4K resolution, perfect details.';
-    } else if (quality >= 80) {
-      fullPrompt += 'High quality, professional photography, excellent details.';
-    } else {
-      fullPrompt += 'Good quality, clear and sharp.';
+    // 将卖点分组，每组最多3个卖点
+    const pointGroups: string[][] = [];
+    for (let i = 0; i < parsedPoints.length; i += 3) {
+      pointGroups.push(parsedPoints.slice(i, i + 3));
     }
 
-    fullPrompt += ` E-commerce standard, optimized for online shopping experience.`;
+    // 如果没有卖点，生成一张空白的详情图
+    if (pointGroups.length === 0) {
+      pointGroups.push([]);
+    }
 
     // 创建生图客户端
     const config = new Config();
     const client = new ImageGenerationClient(config);
+    const generatedImages: string[] = [];
 
-    // 使用图生图或文生图
-    const response = await client.generate({
-      prompt: fullPrompt,
-      image: imageUrl,
-      size: '2K',
-      watermark: false,
-      responseFormat: 'url'
-    });
+    // 为每组卖点生成一张详情图
+    for (let groupIndex = 0; groupIndex < pointGroups.length; groupIndex++) {
+      const group = pointGroups[groupIndex];
 
-    const helper = client.getResponseHelper(response);
+      // 构建当前组的卖点文本
+      const groupPoints = group.join('; ');
+      
+      // 构建完整提示词
+      let fullPrompt = `Create a professional e-commerce product detail page design. ${basePrompt} ${stylePrompt}`;
+      
+      // 添加卖点信息（最多3个）
+      if (groupPoints) {
+        fullPrompt += ` Product features to highlight (maximum 3 points): ${groupPoints}. `;
+      }
+      
+      // 添加质量提示
+      if (quality >= 90) {
+        fullPrompt += 'Ultra high quality, photorealistic, 4K resolution, perfect details.';
+      } else if (quality >= 80) {
+        fullPrompt += 'High quality, professional photography, excellent details.';
+      } else {
+        fullPrompt += 'Good quality, clear and sharp.';
+      }
 
-    if (helper.success && helper.imageUrls.length > 0) {
+      fullPrompt += ` E-commerce standard, optimized for online shopping experience.`;
+
+      // 使用图生图或文生图
+      const response = await client.generate({
+        prompt: fullPrompt,
+        image: imageUrl,
+        size: '2K',
+        watermark: false,
+        responseFormat: 'url'
+      });
+
+      const helper = client.getResponseHelper(response);
+
+      if (helper.success && helper.imageUrls.length > 0) {
+        generatedImages.push(...helper.imageUrls);
+      } else {
+        console.error(`生成第 ${groupIndex + 1} 张详情图失败:`, helper.errorMessages);
+      }
+    }
+
+    // 返回所有生成的详情图
+    if (generatedImages.length > 0) {
       return NextResponse.json({
         success: true,
-        images: helper.imageUrls
+        images: generatedImages,
+        totalImages: generatedImages.length,
+        pointGroups: pointGroups.length,
+        pointsPerGroup: Math.min(3, parsedPoints.length)
       });
     } else {
       return NextResponse.json(
         { 
           success: false, 
-          error: helper.errorMessages.join(', ') || '详情图生成失败' 
+          error: '详情图生成失败，请稍后重试' 
         },
         { status: 500 }
       );

@@ -15,6 +15,11 @@ export default function DetailDesign() {
   const [productImage, setProductImage] = useState<File | null>(null);
   const [sellingPoints, setSellingPoints] = useState('');
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generationInfo, setGenerationInfo] = useState<{
+    totalImages: number;
+    pointGroups: number;
+    pointsPerGroup: number;
+  } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingPoints, setIsGeneratingPoints] = useState(false);
   const [showAd, setShowAd] = useState(false);
@@ -175,6 +180,11 @@ export default function DetailDesign() {
       if (response.ok) {
         const data = await response.json();
         setGeneratedImages(data.images || []);
+        setGenerationInfo({
+          totalImages: data.totalImages || data.images?.length || 0,
+          pointGroups: data.pointGroups || 1,
+          pointsPerGroup: data.pointsPerGroup || 3
+        });
       } else {
         throw new Error('生成失败');
       }
@@ -282,12 +292,15 @@ export default function DetailDesign() {
               <Label>商品卖点（核心卖点，每行一个）</Label>
               <div className="space-y-2">
                 <Textarea
-                  placeholder="例如：&#10;1. 优质面料，透气舒适&#10;2. 多口袋设计，实用便捷&#10;3. 经典百搭，时尚潮流&#10;4. 精工细作，品质保证"
+                  placeholder="例如：&#10;1. 优质面料，透气舒适&#10;2. 多口袋设计，实用便捷&#10;3. 经典百搭，时尚潮流&#10;4. 精工细作，品质保证&#10;5. 限时优惠，性价比高"
                   value={sellingPoints}
                   onChange={(e) => setSellingPoints(e.target.value)}
-                  rows={4}
+                  rows={5}
                   className="resize-none"
                 />
+                <p className="text-xs text-muted-foreground">
+                  💡 AI会智能将卖点分组，每张详情图最多显示3个卖点。如果卖点超过3个，将自动生成多张详情图。
+                </p>
                 <div className="flex gap-2">
                   <Input
                     placeholder="商品名称（用于AI生成卖点）"
@@ -414,19 +427,26 @@ export default function DetailDesign() {
         {/* 输出区域 */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
                 <CardTitle>生成结果</CardTitle>
                 <CardDescription>AI生成的电商详情图</CardDescription>
               </div>
-              {generatedImages.length > 0 && (
-                <div className="text-right">
-                  <Badge variant="outline" className="mr-2">
-                    {generatedImages.length} 张
-                  </Badge>
-                  <Badge variant="outline">
-                    {selectedSize}
-                  </Badge>
+              {generatedImages.length > 0 && generationInfo && (
+                <div className="text-right space-y-1">
+                  <div className="flex items-center justify-end gap-2">
+                    <Badge variant="default" className="bg-gradient-to-r from-green-500 to-emerald-600">
+                      {generationInfo.totalImages} 张详情图
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <Badge variant="outline">
+                      {generationInfo.pointGroups} 个卖点分组
+                    </Badge>
+                    <Badge variant="outline">
+                      每组 {generationInfo.pointsPerGroup} 个卖点
+                    </Badge>
+                  </div>
                 </div>
               )}
             </div>
@@ -444,31 +464,45 @@ export default function DetailDesign() {
               ) : generatedImages.length > 0 ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4">
-                    {generatedImages.map((imageUrl, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="relative group">
-                          <div className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden border">
-                            <img
-                              src={imageUrl}
-                              alt={`详情图 ${index + 1}`}
-                              className="w-full object-contain"
-                              style={{
-                                maxWidth: '100%',
-                                height: 'auto'
-                              }}
-                            />
+                    {generatedImages.map((imageUrl, index) => {
+                      // 计算当前图对应的卖点范围
+                      const startPoint = index * 3 + 1;
+                      const endPoint = Math.min(startPoint + 2, (generationInfo?.pointGroups || 1) * 3);
+                      
+                      return (
+                        <div key={index} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="secondary" className="font-medium">
+                              详情图 {index + 1} / {generatedImages.length}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              卖点 {startPoint}-{endPoint}
+                            </span>
                           </div>
-                          <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              size="sm"
-                              onClick={() => handleDownload(imageUrl, index)}
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
+                          <div className="relative group">
+                            <div className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden border">
+                              <img
+                                src={imageUrl}
+                                alt={`详情图 ${index + 1}`}
+                                className="w-full object-contain"
+                                style={{
+                                  maxWidth: '100%',
+                                  height: 'auto'
+                                }}
+                              />
+                            </div>
+                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="sm"
+                                onClick={() => handleDownload(imageUrl, index)}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <Button
                     variant="outline"
