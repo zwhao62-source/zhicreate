@@ -9,6 +9,7 @@ import ImageGenerator from '@/components/features/image-generator';
 import VideoGenerator from '@/components/features/video-generator';
 import ImageProcessor from '@/components/features/image-processor';
 import ModelSwap from '@/components/features/model-swap';
+import DetailDesign from '@/components/features/detail-design';
 
 const features = [
   {
@@ -22,6 +23,12 @@ const features = [
     label: 'AI商品图生成',
     icon: '🎨',
     description: '提供商品上身图，生成专业模特展示图'
+  },
+  {
+    id: 'detail',
+    label: 'AI电商详情图设计',
+    icon: '📐',
+    description: '生成符合电商内页尺寸的专业详情图'
   },
   {
     id: 'video',
@@ -60,7 +67,7 @@ export default function Home() {
                 <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   AI电商营销平台
                 </h1>
-                <p className="text-xs text-muted-foreground">智能创作 · 高效营销</p>
+                <p className="text-xs text-muted-foreground">智能创作 · 详情图设计 · 高效营销</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -91,7 +98,9 @@ export default function Home() {
                     variant={activeFeature === feature.id ? 'secondary' : 'ghost'}
                     className={`w-full justify-start gap-3 text-left transition-all ${
                       activeFeature === feature.id
-                        ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 shadow-sm'
+                        ? feature.id === 'detail'
+                          ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 shadow-sm'
+                          : 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 shadow-sm'
                         : 'hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                     onClick={() => setActiveFeature(feature.id)}
@@ -113,6 +122,7 @@ export default function Home() {
           <div className="min-h-[600px]">
             {activeFeature === 'copywrite' && <CopyWriteGenerator />}
             {activeFeature === 'image' && <ImageGenerator />}
+            {activeFeature === 'detail' && <DetailDesign />}
             {activeFeature === 'video' && <VideoGenerator />}
             {activeFeature === 'process' && <ImageProcessor />}
             {activeFeature === 'swap' && <ModelSwap />}
@@ -125,7 +135,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
             <p>AI电商营销平台 - 助力商家轻松创作</p>
-            <p className="text-xs">支持多种电商平台：小红书、淘宝、天猫、京东、速卖通等</p>
+            <p className="text-xs">支持多种电商平台：小红书、淘宝、天猫、京东、速卖通等 · 支持电商详情图设计</p>
           </div>
         </div>
       </footer>
