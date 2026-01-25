@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Sparkles, Copy, RefreshCw } from 'lucide-react';
+import AdBanner from '@/components/ui/ad-banner';
 
 export default function CopyWriteGenerator() {
   const [inputData, setInputData] = useState({
@@ -20,6 +21,7 @@ export default function CopyWriteGenerator() {
   });
   const [generatedContent, setGeneratedContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showAd, setShowAd] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success'>('idle');
 
   const templates = [
@@ -38,7 +40,13 @@ export default function CopyWriteGenerator() {
     }
 
     setIsLoading(true);
+    setShowAd(true);
     setGeneratedContent('');
+
+    // 15秒后自动隐藏广告，继续显示流式内容
+    setTimeout(() => {
+      setShowAd(false);
+    }, 15000);
 
     try {
       const response = await fetch('/api/generate-copywrite', {
@@ -89,6 +97,10 @@ export default function CopyWriteGenerator() {
     }
   };
 
+  const handleAdComplete = () => {
+    setShowAd(false);
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(generatedContent);
     setCopyStatus('success');
@@ -97,6 +109,19 @@ export default function CopyWriteGenerator() {
 
   return (
     <div className="space-y-6">
+      {/* 广告横幅 */}
+      {showAd && isLoading && (
+        <AdBanner
+          duration={15}
+          onComplete={handleAdComplete}
+          adContent={{
+            title: 'AI文案生成',
+            description: '正在为您生成高质量营销文案，15秒后即可查看',
+            ctaText: '探索更多功能'
+          }}
+        />
+      )}
+
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
           <Sparkles className="h-6 w-6 text-white" />

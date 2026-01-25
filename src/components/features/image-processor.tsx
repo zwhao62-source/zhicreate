@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Loader2, Sparkles, Upload, Download, Wand2 } from 'lucide-react';
+import AdBanner from '@/components/ui/ad-banner';
 
 export default function ImageProcessor() {
   const [sourceImage, setSourceImage] = useState<File | null>(null);
   const [processedImage, setProcessedImage] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAd, setShowAd] = useState(false);
   const [selectedFunction, setSelectedFunction] = useState('beautify');
   const [intensity, setIntensity] = useState([50]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +72,7 @@ export default function ImageProcessor() {
     }
 
     setIsProcessing(true);
+    setShowAd(true);
 
     try {
       const formData = new FormData();
@@ -96,6 +99,10 @@ export default function ImageProcessor() {
     }
   };
 
+  const handleAdComplete = () => {
+    setShowAd(false);
+  };
+
   const handleDownload = () => {
     if (processedImage) {
       const link = document.createElement('a');
@@ -107,6 +114,19 @@ export default function ImageProcessor() {
 
   return (
     <div className="space-y-6">
+      {/* 广告横幅 */}
+      {showAd && isProcessing && (
+        <AdBanner
+          duration={30}
+          onComplete={handleAdComplete}
+          adContent={{
+            title: 'AI图片处理',
+            description: '正在为您处理图片，30秒左右即可完成',
+            ctaText: '探索更多功能'
+          }}
+        />
+      )}
+
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
           <Wand2 className="h-6 w-6 text-white" />

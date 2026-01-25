@@ -7,12 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Sparkles, Upload, Download, RefreshCw } from 'lucide-react';
+import AdBanner from '@/components/ui/ad-banner';
 
 export default function ImageGenerator() {
   const [productImage, setProductImage] = useState<File | null>(null);
   const [prompt, setPrompt] = useState('');
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showAd, setShowAd] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState('realistic');
   const [selectedSize, setSelectedSize] = useState('800x800');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,6 +57,7 @@ export default function ImageGenerator() {
     }
 
     setIsGenerating(true);
+    setShowAd(true);
     setGeneratedImages([]);
 
     try {
@@ -86,6 +89,10 @@ export default function ImageGenerator() {
     }
   };
 
+  const handleAdComplete = () => {
+    setShowAd(false);
+  };
+
   const handleDownload = (imageUrl: string, index: number) => {
     const link = document.createElement('a');
     link.href = imageUrl;
@@ -95,6 +102,19 @@ export default function ImageGenerator() {
 
   return (
     <div className="space-y-6">
+      {/* 广告横幅 */}
+      {showAd && isGenerating && (
+        <AdBanner
+          duration={45}
+          onComplete={handleAdComplete}
+          adContent={{
+            title: 'AI商品图生成',
+            description: '正在为您生成专业的商品展示图，30-60秒即可完成',
+            ctaText: '探索更多功能'
+          }}
+        />
+      )}
+
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-rose-600">
           <Sparkles className="h-6 w-6 text-white" />

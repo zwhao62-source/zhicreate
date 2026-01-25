@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Loader2, Sparkles, Upload, Download, Layout, Image as ImageIcon } from 'lucide-react';
+import AdBanner from '@/components/ui/ad-banner';
 
 export default function DetailDesign() {
   const [productImage, setProductImage] = useState<File | null>(null);
@@ -16,6 +17,7 @@ export default function DetailDesign() {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingPoints, setIsGeneratingPoints] = useState(false);
+  const [showAd, setShowAd] = useState(false);
   const [selectedSize, setSelectedSize] = useState('750x800');
   const [selectedTemplate, setSelectedTemplate] = useState('showcase');
   const [quality, setQuality] = useState([80]);
@@ -151,6 +153,7 @@ export default function DetailDesign() {
     }
 
     setIsGenerating(true);
+    setShowAd(true);
     setGeneratedImages([]);
 
     try {
@@ -183,6 +186,10 @@ export default function DetailDesign() {
     }
   };
 
+  const handleAdComplete = () => {
+    setShowAd(false);
+  };
+
   const handleDownload = (imageUrl: string, index: number) => {
     const link = document.createElement('a');
     link.href = imageUrl;
@@ -192,6 +199,19 @@ export default function DetailDesign() {
 
   return (
     <div className="space-y-6">
+      {/* 广告横幅 */}
+      {showAd && isGenerating && (
+        <AdBanner
+          duration={45}
+          onComplete={handleAdComplete}
+          adContent={{
+            title: 'AI电商详情图设计',
+            description: '正在为您生成专业的电商详情图，30-60秒即可完成',
+            ctaText: '探索更多功能'
+          }}
+        />
+      )}
+
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
           <Layout className="h-6 w-6 text-white" />

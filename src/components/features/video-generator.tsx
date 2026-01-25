@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Loader2, Sparkles, Upload, Download, Play, Pause } from 'lucide-react';
+import AdBanner from '@/components/ui/ad-banner';
 
 export default function VideoGenerator() {
   const [sourceImage, setSourceImage] = useState<File | null>(null);
@@ -15,6 +16,7 @@ export default function VideoGenerator() {
   const [generatedVideo, setGeneratedVideo] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showAd, setShowAd] = useState(false);
   const [duration, setDuration] = useState([3]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -42,6 +44,7 @@ export default function VideoGenerator() {
     }
 
     setIsGenerating(true);
+    setShowAd(true);
     setGeneratedVideo('');
 
     try {
@@ -70,6 +73,10 @@ export default function VideoGenerator() {
     }
   };
 
+  const handleAdComplete = () => {
+    setShowAd(false);
+  };
+
   const togglePlayPause = () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -92,6 +99,19 @@ export default function VideoGenerator() {
 
   return (
     <div className="space-y-6">
+      {/* 广告横幅 */}
+      {showAd && isGenerating && (
+        <AdBanner
+          duration={45}
+          onComplete={handleAdComplete}
+          adContent={{
+            title: 'AI图生视频',
+            description: '正在为您生成动态商品展示视频，30-60秒即可完成',
+            ctaText: '探索更多功能'
+          }}
+        />
+      )}
+
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600">
           <Sparkles className="h-6 w-6 text-white" />
