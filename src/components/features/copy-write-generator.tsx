@@ -43,11 +43,6 @@ export default function CopyWriteGenerator() {
     setShowAd(true);
     setGeneratedContent('');
 
-    // 15秒后自动隐藏广告，继续显示流式内容
-    setTimeout(() => {
-      setShowAd(false);
-    }, 15000);
-
     try {
       const response = await fetch('/api/generate-copywrite', {
         method: 'POST',
@@ -86,12 +81,16 @@ export default function CopyWriteGenerator() {
             }
           }
         }
+        // 生成成功后立即关闭广告
+        setShowAd(false);
       } else {
         throw new Error('生成失败');
       }
     } catch (error) {
       console.error('生成文案失败:', error);
       alert('生成文案失败，请稍后重试');
+      // 生成失败时也要关闭广告
+      setShowAd(false);
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +109,7 @@ export default function CopyWriteGenerator() {
   return (
     <div className="space-y-6">
       {/* 广告横幅 */}
-      {showAd && isLoading && (
+      {showAd && (
         <AdBanner
           duration={15}
           onComplete={handleAdComplete}

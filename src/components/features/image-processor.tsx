@@ -88,12 +88,16 @@ export default function ImageProcessor() {
       if (response.ok) {
         const data = await response.json();
         setProcessedImage(data.imageUrl || '');
+        // 处理成功后立即关闭广告
+        setShowAd(false);
       } else {
         throw new Error('处理失败');
       }
     } catch (error) {
       console.error('图片处理失败:', error);
       alert('图片处理失败，请稍后重试');
+      // 处理失败时也要关闭广告
+      setShowAd(false);
     } finally {
       setIsProcessing(false);
     }
@@ -115,7 +119,7 @@ export default function ImageProcessor() {
   return (
     <div className="space-y-6">
       {/* 广告横幅 */}
-      {showAd && isProcessing && (
+      {showAd && (
         <AdBanner
           duration={30}
           onComplete={handleAdComplete}

@@ -78,12 +78,16 @@ export default function ImageGenerator() {
       if (response.ok) {
         const data = await response.json();
         setGeneratedImages(data.images || []);
+        // 生成成功后立即关闭广告
+        setShowAd(false);
       } else {
         throw new Error('生成失败');
       }
     } catch (error) {
       console.error('生成图片失败:', error);
       alert('生成图片失败，请稍后重试');
+      // 生成失败时也要关闭广告
+      setShowAd(false);
     } finally {
       setIsGenerating(false);
     }
@@ -103,7 +107,7 @@ export default function ImageGenerator() {
   return (
     <div className="space-y-6">
       {/* 广告横幅 */}
-      {showAd && isGenerating && (
+      {showAd && (
         <AdBanner
           duration={45}
           onComplete={handleAdComplete}

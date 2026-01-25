@@ -185,12 +185,16 @@ export default function DetailDesign() {
           pointGroups: data.pointGroups || 1,
           pointsPerGroup: data.pointsPerGroup || 3
         });
+        // 生成成功后立即关闭广告
+        setShowAd(false);
       } else {
         throw new Error('生成失败');
       }
     } catch (error) {
       console.error('生成详情图失败:', error);
       alert('生成详情图失败，请稍后重试');
+      // 生成失败时也要关闭广告
+      setShowAd(false);
     } finally {
       setIsGenerating(false);
     }
@@ -210,7 +214,7 @@ export default function DetailDesign() {
   return (
     <div className="space-y-6">
       {/* 广告横幅 */}
-      {showAd && isGenerating && (
+      {showAd && (
         <AdBanner
           duration={45}
           onComplete={handleAdComplete}
