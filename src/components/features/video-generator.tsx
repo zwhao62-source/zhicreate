@@ -17,7 +17,7 @@ export default function VideoGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showAd, setShowAd] = useState(false);
-  const [duration, setDuration] = useState([3]);
+  const [duration, setDuration] = useState([5]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -213,8 +213,8 @@ export default function VideoGenerator() {
               <Slider
                 value={duration}
                 onValueChange={setDuration}
-                min={2}
-                max={10}
+                min={4}
+                max={12}
                 step={1}
                 className="w-full"
               />

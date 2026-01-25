@@ -18,9 +18,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证时长范围
-    if (duration < 2 || duration > 10) {
+    if (duration < 4 || duration > 12) {
       return NextResponse.json(
-        { error: '视频时长必须在2-10秒之间' },
+        { error: '视频时长必须在4-12秒之间' },
         { status: 400 }
       );
     }
