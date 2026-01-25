@@ -10,6 +10,7 @@ import VideoGenerator from '@/components/features/video-generator';
 import ImageProcessor from '@/components/features/image-processor';
 import ModelSwap from '@/components/features/model-swap';
 import DetailDesign from '@/components/features/detail-design';
+import ModelTraining from '@/components/features/model-training';
 
 const features = [
   {
@@ -17,6 +18,12 @@ const features = [
     label: 'AI文案生成',
     icon: '✍️',
     description: '输入商品信息，自动生成种草文案、爆文改写'
+  },
+  {
+    id: 'training',
+    label: 'AI模特训练',
+    icon: '👤',
+    description: '上传照片训练专属AI虚拟模特，降低拍摄成本'
   },
   {
     id: 'image',
@@ -121,6 +128,7 @@ export default function Home() {
           {/* 右侧内容区 */}
           <div className="min-h-[600px]">
             {activeFeature === 'copywrite' && <CopyWriteGenerator />}
+            {activeFeature === 'training' && <ModelTraining />}
             {activeFeature === 'image' && <ImageGenerator />}
             {activeFeature === 'detail' && <DetailDesign />}
             {activeFeature === 'video' && <VideoGenerator />}
