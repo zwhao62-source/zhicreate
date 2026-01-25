@@ -14,7 +14,14 @@ export default function ImageGenerator() {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState('realistic');
+  const [selectedSize, setSelectedSize] = useState('800x800');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const sizes = [
+    { id: '800x800', name: '800x800', desc: '商品主图' },
+    { id: '1000x1000', name: '1000x1000', desc: '高清主图' },
+    { id: '1200x1200', name: '1200x1200', desc: '超高清主图' }
+  ];
 
   const styles = [
     { id: 'realistic', name: '真实感', desc: '专业摄影风格' },
@@ -58,6 +65,7 @@ export default function ImageGenerator() {
       formData.append('prompt', prompt || '专业模特展示商品');
       formData.append('style', selectedStyle);
       formData.append('scene', selectedScene);
+      formData.append('size', selectedSize);
 
       const response = await fetch('/api/generate-image', {
         method: 'POST',
@@ -81,7 +89,7 @@ export default function ImageGenerator() {
   const handleDownload = (imageUrl: string, index: number) => {
     const link = document.createElement('a');
     link.href = imageUrl;
-    link.download = `generated-image-${index + 1}.png`;
+    link.download = `product-image-${selectedSize}-${index + 1}.png`;
     link.click();
   };
 
@@ -177,6 +185,25 @@ export default function ImageGenerator() {
                   >
                     {style.name}
                   </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* 主图尺寸选择 */}
+            <div className="space-y-2">
+              <Label>主图尺寸（商品主图标准尺寸）</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {sizes.map((size) => (
+                  <Button
+                    key={size.id}
+                    variant={selectedSize === size.id ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedSize(size.id)}
+                    className="flex flex-col gap-1 h-auto py-2"
+                  >
+                    <span className="text-xs font-bold">{size.name}</span>
+                    <span className="text-[10px] opacity-70">{size.desc}</span>
+                  </Button>
                 ))}
               </div>
             </div>

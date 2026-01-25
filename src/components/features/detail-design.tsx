@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
@@ -14,9 +15,11 @@ export default function DetailDesign() {
   const [sellingPoints, setSellingPoints] = useState('');
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingPoints, setIsGeneratingPoints] = useState(false);
   const [selectedSize, setSelectedSize] = useState('750x800');
   const [selectedTemplate, setSelectedTemplate] = useState('showcase');
   const [quality, setQuality] = useState([80]);
+  const [productName, setProductName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sizes = [
@@ -79,6 +82,65 @@ export default function DetailDesign() {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       setProductImage(file);
+    }
+  };
+
+  const handleGenerateSellingPoints = async () => {
+    if (!productName) {
+      alert('请输入商品名称');
+      return;
+    }
+
+    setIsGeneratingPoints(true);
+    setSellingPoints('');
+
+    try {
+      const response = await fetch('/api/generate-selling-points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName,
+          category: selectedTemplate,
+          description: sellingPoints
+        })
+      });
+
+      if (response.ok) {
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.content) {
+                    setSellingPoints(prev => prev + parsed.content);
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          }
+        }
+      } else {
+        throw new Error('生成失败');
+      }
+    } catch (error) {
+      console.error('生成卖点失败:', error);
+      alert('生成卖点失败，请稍后重试');
+    } finally {
+      setIsGeneratingPoints(false);
     }
   };
 
@@ -198,19 +260,48 @@ export default function DetailDesign() {
             {/* 卖点输入 */}
             <div className="space-y-2">
               <Label>商品卖点（核心卖点，每行一个）</Label>
-              <Textarea
-                placeholder="例如：&#10;1. 优质面料，透气舒适&#10;2. 多口袋设计，实用便捷&#10;3. 经典百搭，时尚潮流&#10;4. 精工细作，品质保证"
-                value={sellingPoints}
-                onChange={(e) => setSellingPoints(e.target.value)}
-                rows={4}
-                className="resize-none"
-              />
+              <div className="space-y-2">
+                <Textarea
+                  placeholder="例如：&#10;1. 优质面料，透气舒适&#10;2. 多口袋设计，实用便捷&#10;3. 经典百搭，时尚潮流&#10;4. 精工细作，品质保证"
+                  value={sellingPoints}
+                  onChange={(e) => setSellingPoints(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="商品名称（用于AI生成卖点）"
+                    value={productName}
+                    onChange={(e) => setProductName(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleGenerateSellingPoints}
+                    disabled={isGeneratingPoints || !productName}
+                    variant="outline"
+                    size="sm"
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0"
+                  >
+                    {isGeneratingPoints ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        生成中...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        AI写卖点
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {/* 尺寸选择 */}
             <div className="space-y-2">
               <Label>详情图尺寸（电商标准尺寸）</Label>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {sizes.map((size) => (
                   <Button
                     key={size.id}

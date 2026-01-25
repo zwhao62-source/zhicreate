@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
     const prompt = formData.get('prompt') as string;
     const style = formData.get('style') as string;
     const scene = formData.get('scene') as string;
+    const size = formData.get('size') as string || '800x800';
 
     // 验证必填字段
     if (!image && !prompt) {
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     
     if (imageUrl) {
       // 如果有图片，进行图生图
-      fullPrompt = `Transform this product image into a professional model showcase. `;
+      fullPrompt = `Transform this product image into a professional model showcase. Product main image size: ${size}. `;
       fullPrompt += `${stylePrompts[style] || stylePrompts.realistic}. `;
       fullPrompt += `${scenePrompts[scene] || scenePrompts.studio}. `;
       
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // 纯文生图
-      fullPrompt = `Professional e-commerce product photography showing a model wearing the product. `;
+      fullPrompt = `Professional e-commerce product photography showing a model wearing the product. Product main image size: ${size}. `;
       fullPrompt += `${stylePrompts[style] || stylePrompts.realistic}. `;
       fullPrompt += `${scenePrompts[scene] || scenePrompts.studio}. `;
       
