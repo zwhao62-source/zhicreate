@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Loader2, Sparkles, Upload, Download, Layout, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Sparkles, Upload, Download, Layout, Image as ImageIcon, Copy, Eye } from 'lucide-react';
 import AdBanner from '@/components/ui/ad-banner';
 
 export default function DetailDesign() {
@@ -27,6 +27,8 @@ export default function DetailDesign() {
   const [selectedTemplate, setSelectedTemplate] = useState('showcase');
   const [quality, setQuality] = useState([80]);
   const [productName, setProductName] = useState('');
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState<Record<number, 'idle' | 'success'>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sizes = [
@@ -185,7 +187,6 @@ export default function DetailDesign() {
           pointGroups: data.pointGroups || 1,
           pointsPerGroup: data.pointsPerGroup || 3
         });
-        // 生成成功后立即关闭广告
         setShowAd(false);
       } else {
         throw new Error('生成失败');
@@ -193,7 +194,6 @@ export default function DetailDesign() {
     } catch (error) {
       console.error('生成详情图失败:', error);
       alert('生成详情图失败，请稍后重试');
-      // 生成失败时也要关闭广告
       setShowAd(false);
     } finally {
       setIsGenerating(false);
@@ -204,11 +204,53 @@ export default function DetailDesign() {
     setShowAd(false);
   };
 
-  const handleDownload = (imageUrl: string, index: number) => {
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `detail-design-${index + 1}-${selectedSize}.png`;
-    link.click();
+  const handleDownload = async (imageUrl: string, index: number) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `detail-design-${index + 1}-${selectedSize}.png`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('下载失败', error);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    if (generatedImages.length === 0) return;
+    
+    for (let i = 0; i < generatedImages.length; i++) {
+      try {
+        const response = await fetch(generatedImages[i]);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `detail-design-${i + 1}-${selectedSize}.png`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error('下载失败:', error);
+      }
+    }
+  };
+
+  const handleCopyLink = async (imageUrl: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(imageUrl);
+      setCopyStatus(prev => ({ ...prev, [index]: 'success' }));
+      setTimeout(() => setCopyStatus(prev => ({ ...prev, [index]: 'idle' })), 2000);
+    } catch (error) {
+      console.error('复制失败:', error);
+    }
+  };
+
+  const handlePreview = (imageUrl: string) => {
+    setPreviewImage(imageUrl);
   };
 
   return (
@@ -467,9 +509,28 @@ export default function DetailDesign() {
                 </div>
               ) : generatedImages.length > 0 ? (
                 <div className="space-y-4">
+                  {/* 批量下载按钮 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default" className="bg-gradient-to-r from-green-500 to-emerald-600">
+                        {generatedImages.length} 张详情图
+                      </Badge>
+                      <Badge variant="outline">
+                        {selectedSize}
+                      </Badge>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleDownloadAll}
+                      className="bg-gradient-to-r from-green-500 to-emerald-600"
+                    >
+                      <Download className="mr-1 h-4 w-4" />
+                      下载全部 ({generatedImages.length})
+                    </Button>
+                  </div>
+                  
                   <div className="grid grid-cols-1 gap-4">
                     {generatedImages.map((imageUrl, index) => {
-                      // 计算当前图对应的卖点范围
                       const startPoint = index * 3 + 1;
                       const endPoint = Math.min(startPoint + 2, (generationInfo?.pointGroups || 1) * 3);
                       
@@ -483,8 +544,11 @@ export default function DetailDesign() {
                               卖点 {startPoint}-{endPoint}
                             </span>
                           </div>
-                          <div className="relative group">
-                            <div className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden border">
+                          <div className="relative">
+                            <div 
+                              className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden border cursor-pointer hover:shadow-lg transition-shadow"
+                              onClick={() => handlePreview(imageUrl)}
+                            >
                               <img
                                 src={imageUrl}
                                 alt={`详情图 ${index + 1}`}
@@ -495,12 +559,41 @@ export default function DetailDesign() {
                                 }}
                               />
                             </div>
-                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* 始终可见的操作按钮 */}
+                            <div className="absolute bottom-2 right-2 flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handlePreview(imageUrl)}
+                                variant="secondary"
+                                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleCopyLink(imageUrl, index)}
+                                variant="secondary"
+                                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm"
+                              >
+                                {copyStatus[index] === 'success' ? (
+                                  <>
+                                    <Copy className="mr-1 h-4 w-4" />
+                                    已复制
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="mr-1 h-4 w-4" />
+                                    复制链接
+                                  </>
+                                )}
+                              </Button>
                               <Button
                                 size="sm"
                                 onClick={() => handleDownload(imageUrl, index)}
+                                className="bg-gradient-to-r from-green-500 to-emerald-600"
                               >
-                                <Download className="h-4 w-4" />
+                                <Download className="mr-1 h-4 w-4" />
+                                下载
                               </Button>
                             </div>
                           </div>
@@ -531,6 +624,45 @@ export default function DetailDesign() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 大图预览模态框 */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-6xl max-h-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={previewImage}
+              alt="预览大图"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            />
+            <div className="absolute top-4 right-4 flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => setPreviewImage(null)}
+                variant="secondary"
+                className="bg-white/90 dark:bg-slate-800/90"
+              >
+                关闭
+              </Button>
+            </div>
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  const index = generatedImages.findIndex(img => img === previewImage);
+                  if (index !== -1) handleDownload(previewImage, index);
+                }}
+                className="bg-gradient-to-r from-green-500 to-emerald-600"
+              >
+                <Download className="mr-1 h-4 w-4" />
+                下载此图
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
