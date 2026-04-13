@@ -8,15 +8,16 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Grid3X3, Settings2 } from 'lucide-react';
-import { Loader2, Sparkles, Upload, Download, RefreshCw, Image as ImageIcon, Palette, Ruler, MapPin } from 'lucide-react';
+import { Loader2, Sparkles, Upload, Download, RefreshCw, Image as ImageIcon, Palette, Ruler, MapPin, Wand2, Check, RotateCcw } from 'lucide-react';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AdBanner from '@/components/ui/ad-banner';
 
 export default function ImageGenerator() {
   const [productImage, setProductImage] = useState<File | null>(null);
   const [prompt, setPrompt] = useState('');
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [originalPrompt, setOriginalPrompt] = useState('');
+  const [rewrittenPrompt, setRewrittenPrompt] = useState('');
+  const [isRewriting, setIsRewriting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAd, setShowAd] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState('realistic');
@@ -25,6 +26,7 @@ export default function ImageGenerator() {
   const [sizeMode, setSizeMode] = useState<'preset' | 'custom'>('preset');
   const [customWidth, setCustomWidth] = useState('800');
   const [customHeight, setCustomHeight] = useState('800');
+  const [rewriteStatus, setRewriteStatus] = useState<'idle' | 'success' | 'applied'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getFinalSize = () => {
@@ -166,6 +168,66 @@ export default function ImageGenerator() {
     return acc;
   }, {} as Record<string, typeof scenes>);
 
+  // 获取场景名称
+  const getSceneName = (id: string) => {
+    const scene = scenes.find(s => s.id === id);
+    return scene ? scene.name : id;
+  };
+
+  // AI改写提示词
+  const handleRewritePrompt = async () => {
+    if (!prompt.trim()) {
+      alert('请先输入描述提示');
+      return;
+    }
+
+    setIsRewriting(true);
+    setRewriteStatus('idle');
+    setOriginalPrompt(prompt);
+
+    try {
+      const response = await fetch('/api/rewrite-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: prompt,
+          style: selectedStyle,
+          scene: getSceneName(selectedScene),
+          size: getFinalSize()
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRewrittenPrompt(data.rewrittenPrompt || prompt);
+        setRewriteStatus('success');
+      } else {
+        throw new Error('改写失败');
+      }
+    } catch (error) {
+      console.error('AI改写失败:', error);
+      setRewrittenPrompt(prompt);
+      setRewriteStatus('success');
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
+  // 应用改写结果
+  const handleApplyRewritten = () => {
+    if (rewrittenPrompt) {
+      setPrompt(rewrittenPrompt);
+      setRewriteStatus('applied');
+    }
+  };
+
+  // 恢复原始提示词
+  const handleRestoreOriginal = () => {
+    setPrompt(originalPrompt);
+    setRewrittenPrompt('');
+    setRewriteStatus('idle');
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
@@ -213,6 +275,8 @@ export default function ImageGenerator() {
       setIsGenerating(false);
     }
   };
+
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
 
   const handleAdComplete = () => {
     setShowAd(false);
@@ -303,16 +367,79 @@ export default function ImageGenerator() {
               />
             </div>
 
-            {/* 文本描述 */}
+            {/* 描述提示 - AI改写功能 */}
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">描述提示（可选）</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">描述提示</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRewritePrompt}
+                  disabled={isRewriting || !prompt.trim()}
+                  className="h-6 text-[10px] px-1.5 text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+                >
+                  {isRewriting ? (
+                    <Loader2 className="h-3 w-3 animate-spin mr-0.5" />
+                  ) : (
+                    <Wand2 className="h-3 w-3 mr-0.5" />
+                  )}
+                  AI优化
+                </Button>
+              </div>
+              
               <Textarea
-                placeholder="例如：亚洲模特，柔和灯光..."
+                placeholder="描述商品特点、模特风格、场景氛围..."
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={2}
+                onChange={(e) => {
+                  setPrompt(e.target.value);
+                  setRewriteStatus('idle');
+                }}
+                rows={3}
                 className="resize-none text-xs"
               />
+
+              {/* AI改写结果 */}
+              {rewriteStatus === 'success' && rewrittenPrompt && (
+                <div className="space-y-1.5 p-2 rounded-lg bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-100">
+                  <div className="flex items-center gap-1">
+                    <Wand2 className="h-3 w-3 text-pink-600" />
+                    <span className="text-[10px] font-medium text-pink-600">AI优化结果</span>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground bg-white/50 rounded p-1.5 max-h-[80px] overflow-y-auto">
+                    {rewrittenPrompt}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      onClick={handleApplyRewritten}
+                      className="h-6 text-[10px] px-2 bg-pink-500 hover:bg-pink-600"
+                    >
+                      <Check className="h-2.5 w-2.5 mr-0.5" />
+                      应用
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRestoreOriginal}
+                      className="h-6 text-[10px] px-2"
+                    >
+                      <RotateCcw className="h-2.5 w-2.5 mr-0.5" />
+                      恢复
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {rewriteStatus === 'applied' && (
+                <div className="flex items-center gap-1 text-[10px] text-green-600">
+                  <Check className="h-3 w-3" />
+                  已应用优化后的提示词
+                </div>
+              )}
+
+              <p className="text-[10px] text-muted-foreground/70">
+                输入描述后点击"AI优化"，AI将完善提示词，让生图更准确
+              </p>
             </div>
 
             {/* 风格选择 */}
@@ -344,11 +471,11 @@ export default function ImageGenerator() {
               <Tabs value={sizeMode} onValueChange={(v) => setSizeMode(v as 'preset' | 'custom')} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 h-7">
                   <TabsTrigger value="preset" className="text-[11px] gap-1">
-                    <Grid3X3 className="h-2.5 w-2.5" />
+                    <ImageIcon className="h-2.5 w-2.5" />
                     预设
                   </TabsTrigger>
                   <TabsTrigger value="custom" className="text-[11px] gap-1">
-                    <Settings2 className="h-2.5 w-2.5" />
+                    <Ruler className="h-2.5 w-2.5" />
                     自定义
                   </TabsTrigger>
                 </TabsList>
@@ -507,6 +634,7 @@ export default function ImageGenerator() {
                     </div>
                     <p className="text-xs">上传商品图片后点击生成</p>
                     <p className="text-[11px] text-muted-foreground/70">AI将生成专业模特展示图</p>
+                    <p className="text-[11px] text-pink-500/70 mt-2">输入描述后点击"AI优化"效果更佳</p>
                   </div>
                 </div>
               )}
