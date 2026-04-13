@@ -344,26 +344,30 @@ export default function ImageProcessor() {
               />
             </div>
 
-            {/* 功能选择 */}
+            {/* 功能选择 - 紧凑布局 */}
             <div className="space-y-2">
               <Label>选择功能</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {functions.map((func) => (
                   <Badge
                     key={func.id}
                     variant={selectedFunction === func.id ? 'default' : 'outline'}
-                    className={`cursor-pointer hover:opacity-80 p-3 flex flex-col items-center gap-1 ${
+                    className={`cursor-pointer hover:opacity-80 px-2 py-1 flex items-center gap-1 ${
                       selectedFunction === func.id
-                        ? 'bg-gradient-to-r from-cyan-500 to-blue-600'
+                        ? 'bg-gradient-to-r from-cyan-500 to-blue-600 border-cyan-500'
                         : ''
                     }`}
                     onClick={() => setSelectedFunction(func.id)}
                   >
-                    <span className="text-xl">{func.icon}</span>
-                    <span className="font-medium">{func.name}</span>
+                    <span className="text-sm">{func.icon}</span>
+                    <span className="text-xs">{func.name}</span>
                   </Badge>
                 ))}
               </div>
+              {/* 当前功能说明 */}
+              <p className="text-[10px] text-muted-foreground">
+                {functions.find(f => f.id === selectedFunction)?.desc}
+              </p>
             </div>
 
             {/* 强度调节 - AI功能 */}

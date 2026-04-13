@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Sparkles, Upload, Download, RefreshCw, User2, Image as ImageIcon } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, Sparkles, Upload, Download, RefreshCw, User2, Image as ImageIcon, Shirt, Footprints, Crown } from 'lucide-react';
 
 export default function ModelSwap() {
   const [sourceImage, setSourceImage] = useState<File | null>(null);
@@ -13,13 +14,16 @@ export default function ModelSwap() {
   const [backgroundImage, setBackgroundImage] = useState<File | null>(null);
   const [resultImage, setResultImage] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [mode, setMode] = useState<'face' | 'background' | 'both'>('face');
+  // 模式: face-换脸, background-换背景, both-换脸+背景, outfit-换衣服, shoes-换鞋子, accessories-换帽子饰品
+  const [mode, setMode] = useState<'face' | 'background' | 'both' | 'outfit' | 'shoes' | 'accessories'>('face');
+  const [outfitPrompt, setOutfitPrompt] = useState(''); // 服装描述
   
   const sourceRef = useRef<HTMLInputElement>(null);
   const faceRef = useRef<HTMLInputElement>(null);
   const backgroundRef = useRef<HTMLInputElement>(null);
+  const outfitRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'source' | 'face' | 'background') => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'source' | 'face' | 'background' | 'outfit') => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       switch (type) {
@@ -32,10 +36,15 @@ export default function ModelSwap() {
         case 'background':
           setBackgroundImage(file);
           break;
+        case 'outfit':
+          setOutfitImage(file);
+          break;
       }
       setResultImage('');
     }
   };
+
+  const [outfitImage, setOutfitImage] = useState<File | null>(null);
 
   const handleSwap = async () => {
     if (!sourceImage) {
@@ -58,6 +67,11 @@ export default function ModelSwap() {
       return;
     }
 
+    if ((mode === 'outfit' || mode === 'shoes' || mode === 'accessories') && !outfitImage) {
+      alert('请上传参考图片');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -70,6 +84,11 @@ export default function ModelSwap() {
       
       if (mode === 'background' || mode === 'both') {
         formData.append('background', backgroundImage!);
+      }
+      
+      if (mode === 'outfit' || mode === 'shoes' || mode === 'accessories') {
+        formData.append('outfit', outfitImage!);
+        formData.append('outfitPrompt', outfitPrompt);
       }
       
       formData.append('mode', mode);
@@ -86,7 +105,7 @@ export default function ModelSwap() {
         throw new Error('处理失败');
       }
     } catch (error) {
-      console.error('换脸/换背景失败:', error);
+      console.error('换脸/换背景/换装失败:', error);
       alert('处理失败，请稍后重试');
     } finally {
       setIsProcessing(false);
@@ -97,7 +116,7 @@ export default function ModelSwap() {
     if (resultImage) {
       const link = document.createElement('a');
       link.href = resultImage;
-      link.download = `swapped-result.png`;
+      link.download = `swapped-result-${Date.now()}.png`;
       link.click();
     }
   };
@@ -109,8 +128,8 @@ export default function ModelSwap() {
           <RefreshCw className="h-6 w-6 text-white" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold">模特换脸与背景更换</h2>
-          <p className="text-sm text-muted-foreground">轻松替换模特面部或背景，打造不同效果</p>
+          <h2 className="text-2xl font-bold">模特换装与背景</h2>
+          <p className="text-sm text-muted-foreground">换脸/换背景/换衣服/换鞋子/换饰品，打造多样造型</p>
         </div>
       </div>
 
@@ -125,36 +144,66 @@ export default function ModelSwap() {
             {/* 模式选择 */}
             <div className="space-y-2">
               <Label>选择模式</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 <Badge
                   variant={mode === 'face' ? 'default' : 'outline'}
-                  className={`cursor-pointer hover:opacity-80 p-3 ${
-                    mode === 'face' ? 'bg-gradient-to-r from-orange-500 to-red-600' : ''
+                  className={`cursor-pointer hover:opacity-80 px-2 py-1 ${
+                    mode === 'face' ? 'bg-gradient-to-r from-orange-500 to-red-600 border-orange-500' : ''
                   }`}
                   onClick={() => setMode('face')}
                 >
-                  <User2 className="mr-2 h-4 w-4" />
-                  仅换脸
+                  <User2 className="mr-1 h-3 w-3" />
+                  <span className="text-xs">换脸</span>
                 </Badge>
                 <Badge
                   variant={mode === 'background' ? 'default' : 'outline'}
-                  className={`cursor-pointer hover:opacity-80 p-3 ${
-                    mode === 'background' ? 'bg-gradient-to-r from-orange-500 to-red-600' : ''
+                  className={`cursor-pointer hover:opacity-80 px-2 py-1 ${
+                    mode === 'background' ? 'bg-gradient-to-r from-orange-500 to-red-600 border-orange-500' : ''
                   }`}
                   onClick={() => setMode('background')}
                 >
-                  <ImageIcon className="mr-2 h-4 w-4" />
-                  仅换背景
+                  <ImageIcon className="mr-1 h-3 w-3" />
+                  <span className="text-xs">换背景</span>
                 </Badge>
                 <Badge
                   variant={mode === 'both' ? 'default' : 'outline'}
-                  className={`cursor-pointer hover:opacity-80 p-3 ${
-                    mode === 'both' ? 'bg-gradient-to-r from-orange-500 to-red-600' : ''
+                  className={`cursor-pointer hover:opacity-80 px-2 py-1 ${
+                    mode === 'both' ? 'bg-gradient-to-r from-orange-500 to-red-600 border-orange-500' : ''
                   }`}
                   onClick={() => setMode('both')}
                 >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  换脸+背景
+                  <RefreshCw className="mr-1 h-3 w-3" />
+                  <span className="text-xs">换脸+背景</span>
+                </Badge>
+                <Badge
+                  variant={mode === 'outfit' ? 'default' : 'outline'}
+                  className={`cursor-pointer hover:opacity-80 px-2 py-1 ${
+                    mode === 'outfit' ? 'bg-gradient-to-r from-orange-500 to-red-600 border-orange-500' : ''
+                  }`}
+                  onClick={() => setMode('outfit')}
+                >
+                  <Shirt className="mr-1 h-3 w-3" />
+                  <span className="text-xs">换衣服</span>
+                </Badge>
+                <Badge
+                  variant={mode === 'shoes' ? 'default' : 'outline'}
+                  className={`cursor-pointer hover:opacity-80 px-2 py-1 ${
+                    mode === 'shoes' ? 'bg-gradient-to-r from-orange-500 to-red-600 border-orange-500' : ''
+                  }`}
+                  onClick={() => setMode('shoes')}
+                >
+                  <Footprints className="mr-1 h-3 w-3" />
+                  <span className="text-xs">换鞋子</span>
+                </Badge>
+                <Badge
+                  variant={mode === 'accessories' ? 'default' : 'outline'}
+                  className={`cursor-pointer hover:opacity-80 px-2 py-1 ${
+                    mode === 'accessories' ? 'bg-gradient-to-r from-orange-500 to-red-600 border-orange-500' : ''
+                  }`}
+                  onClick={() => setMode('accessories')}
+                >
+                  <Crown className="mr-1 h-3 w-3" />
+                  <span className="text-xs">换帽子饰品</span>
                 </Badge>
               </div>
             </div>
@@ -295,6 +344,84 @@ export default function ModelSwap() {
               </div>
             )}
 
+            {/* 换装模式上传 */}
+            {(mode === 'outfit' || mode === 'shoes' || mode === 'accessories') && (
+              <>
+                {/* 服装/鞋子/饰品参考图 */}
+                <div className="space-y-2">
+                  <Label>
+                    {mode === 'outfit' && '服装参考图 *'}
+                    {mode === 'shoes' && '鞋子参考图 *'}
+                    {mode === 'accessories' && '帽子/饰品参考图 *'}
+                  </Label>
+                  <div
+                    className="flex min-h-[120px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-orange-500 dark:hover:border-orange-500 transition-colors"
+                    onClick={() => outfitRef.current?.click()}
+                  >
+                    {outfitImage ? (
+                      <div className="relative">
+                        <img
+                          src={URL.createObjectURL(outfitImage)}
+                          alt="参考图"
+                          className="max-h-[120px] object-contain"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOutfitImage(null);
+                          }}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <Upload className="mx-auto h-6 w-6 text-muted-foreground" />
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {mode === 'outfit' && '点击上传目标服装图片'}
+                          {mode === 'shoes' && '点击上传目标鞋子图片'}
+                          {mode === 'accessories' && '点击上传帽子/饰品图片'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={outfitRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, 'outfit')}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* 服装描述 */}
+                <div className="space-y-2">
+                  <Label>
+                    {mode === 'outfit' && '服装描述（可选）'}
+                    {mode === 'shoes' && '鞋子描述（可选）'}
+                    {mode === 'accessories' && '饰品描述（可选）'}
+                  </Label>
+                  <Textarea
+                    placeholder={
+                      mode === 'outfit' ? '例如：蓝色条纹衬衫，简约风格...' :
+                      mode === 'shoes' ? '例如：白色运动鞋，休闲款式...' :
+                      '例如：黑色棒球帽，时尚百搭...'
+                    }
+                    value={outfitPrompt}
+                    onChange={(e) => setOutfitPrompt(e.target.value)}
+                    rows={2}
+                    className="resize-none text-xs"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    描述越详细效果越好，可指定颜色、款式、风格等
+                  </p>
+                </div>
+              </>
+            )}
+
             <Button
               onClick={handleSwap}
               disabled={isProcessing}
@@ -308,7 +435,10 @@ export default function ModelSwap() {
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  开始处理
+                  {mode === 'outfit' && '更换服装'}
+                  {mode === 'shoes' && '更换鞋子'}
+                  {mode === 'accessories' && '更换饰品'}
+                  {!['outfit', 'shoes', 'accessories'].includes(mode) && '开始处理'}
                 </>
               )}
             </Button>
@@ -321,7 +451,12 @@ export default function ModelSwap() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>处理结果</CardTitle>
-                <CardDescription>换脸/换背景后的效果</CardDescription>
+                <CardDescription>
+                  {mode === 'outfit' && '模特换装后的效果'}
+                  {mode === 'shoes' && '模特换鞋后的效果'}
+                  {mode === 'accessories' && '模特换饰品后的效果'}
+                  {!['outfit', 'shoes', 'accessories'].includes(mode) && '换脸/换背景后的效果'}
+                </CardDescription>
               </div>
               {resultImage && (
                 <Button variant="outline" size="sm" onClick={handleDownload}>
