@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Sparkles, Copy, Download, FileText, RefreshCw } from 'lucide-react';
+import { Loader2, Sparkles, Copy, Download, FileText, RefreshCw, Link2, CheckCircle } from 'lucide-react';
 import AdBanner from '@/components/ui/ad-banner';
 
 export default function CopyWriteGenerator() {
@@ -24,6 +24,9 @@ export default function CopyWriteGenerator() {
   const [showAd, setShowAd] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success'>('idle');
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'success'>('idle');
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchStatus, setFetchStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [fetchedProductName, setFetchedProductName] = useState('');
 
   const templates = [
     { id: 'zhongcao', name: '种草文案', desc: '适合小红书等平台' },
@@ -33,6 +36,65 @@ export default function CopyWriteGenerator() {
   ];
 
   const [selectedTemplate, setSelectedTemplate] = useState('zhongcao');
+
+  // 读取商品链接
+  const handleFetchLink = async () => {
+    if (!inputData.productLink) {
+      alert('请先粘贴商品链接');
+      return;
+    }
+
+    setIsFetching(true);
+    setFetchStatus('idle');
+
+    try {
+      const response = await fetch('/api/fetch-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: inputData.productLink })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.productInfo) {
+        // 自动填充解析出的信息
+        const newData = { ...inputData };
+        
+        if (data.productInfo.productName) {
+          newData.productId = data.productInfo.productName;
+        }
+        
+        if (data.productInfo.sellingPoints && Array.isArray(data.productInfo.sellingPoints)) {
+          newData.sellingPoints = data.productInfo.sellingPoints.join('\n');
+        } else if (data.productInfo.sellingPoints) {
+          newData.sellingPoints = data.productInfo.sellingPoints;
+        }
+        
+        if (data.productInfo.brand && !newData.persona) {
+          newData.persona = `品牌：${data.productInfo.brand}`;
+        }
+        
+        if (data.productInfo.targetAudience) {
+          newData.persona = (newData.persona ? newData.persona + ' | ' : '') + data.productInfo.targetAudience;
+        }
+        
+        setInputData(newData);
+        setFetchedProductName(data.productInfo.productName || data.pageTitle || '商品');
+        setFetchStatus('success');
+        
+        setTimeout(() => setFetchStatus('idle'), 3000);
+      } else {
+        alert(data.error || '读取链接失败，请手动填写信息');
+        setFetchStatus('error');
+      }
+    } catch (error) {
+      console.error('读取链接失败:', error);
+      alert('读取链接失败，请稍后重试');
+      setFetchStatus('error');
+    } finally {
+      setIsFetching(false);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!inputData.sellingPoints) {
@@ -167,12 +229,39 @@ export default function CopyWriteGenerator() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[11px] text-muted-foreground">商品链接</Label>
-                <Input
-                  placeholder="可选"
-                  value={inputData.productLink}
-                  onChange={(e) => setInputData({ ...inputData, productLink: e.target.value })}
-                  className="h-7 text-xs"
-                />
+                <div className="flex gap-1.5">
+                  <Input
+                    placeholder="粘贴淘宝/京东/天猫等商品链接"
+                    value={inputData.productLink}
+                    onChange={(e) => {
+                      setInputData({ ...inputData, productLink: e.target.value });
+                      setFetchStatus('idle');
+                    }}
+                    className="h-7 text-xs flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleFetchLink}
+                    disabled={isFetching || !inputData.productLink}
+                    className="h-7 px-2 text-[11px]"
+                  >
+                    {isFetching ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : fetchStatus === 'success' ? (
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Link2 className="h-3 w-3" />
+                    )}
+                    <span className="ml-1">读取</span>
+                  </Button>
+                </div>
+                {fetchStatus === 'success' && fetchedProductName && (
+                  <p className="text-[10px] text-green-600 flex items-center gap-1">
+                    <CheckCircle className="h-2.5 w-2.5" />
+                    已读取：{fetchedProductName}
+                  </p>
+                )}
               </div>
             </div>
 
