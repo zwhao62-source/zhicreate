@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Sparkles, Copy, RefreshCw } from 'lucide-react';
+import { Loader2, Sparkles, Copy, Download, FileText, RefreshCw } from 'lucide-react';
 import AdBanner from '@/components/ui/ad-banner';
 
 export default function CopyWriteGenerator() {
@@ -23,6 +23,7 @@ export default function CopyWriteGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [showAd, setShowAd] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success'>('idle');
+  const [downloadStatus, setDownloadStatus] = useState<'idle' | 'success'>('idle');
 
   const templates = [
     { id: 'zhongcao', name: '种草文案', desc: '适合小红书等平台' },
@@ -106,8 +107,20 @@ export default function CopyWriteGenerator() {
     setTimeout(() => setCopyStatus('idle'), 2000);
   };
 
+  const handleDownload = () => {
+    const blob = new Blob([generatedContent], { type: 'text/plain;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `营销文案_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.txt`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+    setDownloadStatus('success');
+    setTimeout(() => setDownloadStatus('idle'), 2000);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* 广告横幅 */}
       {showAd && (
         <AdBanner
@@ -121,80 +134,87 @@ export default function CopyWriteGenerator() {
         />
       )}
 
-      <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
-          <Sparkles className="h-6 w-6 text-white" />
+      <div className="flex items-center gap-2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-sm">
+          <Sparkles className="h-4 w-4 text-white" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold">AI文案生成</h2>
-          <p className="text-sm text-muted-foreground">输入商品信息，自动生成高质量营销文案</p>
+          <h2 className="text-base font-semibold">AI文案生成</h2>
+          <p className="text-xs text-muted-foreground">输入商品信息，自动生成高质量营销文案</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* 输入区域 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>商品信息</CardTitle>
-            <CardDescription>填写商品相关信息，AI将为您生成专业文案</CardDescription>
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-blue-600" />
+              商品信息
+            </CardTitle>
+            <CardDescription className="text-xs">填写信息，AI生成专业文案</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>商品ID（可选）</Label>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">商品ID</Label>
                 <Input
-                  placeholder="输入商品ID"
+                  placeholder="可选"
                   value={inputData.productId}
                   onChange={(e) => setInputData({ ...inputData, productId: e.target.value })}
+                  className="h-7 text-xs"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>商品链接（可选）</Label>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">商品链接</Label>
                 <Input
-                  placeholder="输入商品链接"
+                  placeholder="可选"
                   value={inputData.productLink}
                   onChange={(e) => setInputData({ ...inputData, productLink: e.target.value })}
+                  className="h-7 text-xs"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-red-500">商品卖点 *</Label>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-red-500">商品卖点 *</Label>
               <Textarea
-                placeholder="描述商品的核心卖点、特色、优势等..."
+                placeholder="描述商品卖点、特色、优势..."
                 value={inputData.sellingPoints}
                 onChange={(e) => setInputData({ ...inputData, sellingPoints: e.target.value })}
-                rows={3}
-                className="resize-none"
+                rows={2}
+                className="resize-none text-xs"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>人设风格（可选）</Label>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">人设风格</Label>
               <Input
-                placeholder="例如：专业测评、达人推荐、真实用户..."
+                placeholder="专业测评/达人推荐/真实用户"
                 value={inputData.persona}
                 onChange={(e) => setInputData({ ...inputData, persona: e.target.value })}
+                className="h-7 text-xs"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>话题标签（可选）</Label>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground">话题标签</Label>
               <Input
-                placeholder="例如：#好物推荐 #购物攻略"
+                placeholder="#好物推荐 #购物攻略"
                 value={inputData.topic}
                 onChange={(e) => setInputData({ ...inputData, topic: e.target.value })}
+                className="h-7 text-xs"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>文案模板</Label>
-              <div className="flex flex-wrap gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">文案模板</Label>
+              <div className="flex flex-wrap gap-1">
                 {templates.map((template) => (
                   <Badge
                     key={template.id}
                     variant={selectedTemplate === template.id ? 'default' : 'outline'}
-                    className="cursor-pointer hover:opacity-80"
+                    className={`cursor-pointer text-[11px] h-6 ${selectedTemplate === template.id ? 'bg-blue-500 hover:bg-blue-600 border-blue-500' : ''}`}
                     onClick={() => setSelectedTemplate(template.id)}
                   >
                     {template.name}
@@ -206,16 +226,16 @@ export default function CopyWriteGenerator() {
             <Button
               onClick={handleGenerate}
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600"
+              className="w-full h-8 text-xs bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                   生成中...
                 </>
               ) : (
                 <>
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <Sparkles className="mr-1.5 h-3 w-3" />
                   生成文案
                 </>
               )}
@@ -224,53 +244,77 @@ export default function CopyWriteGenerator() {
         </Card>
 
         {/* 输出区域 */}
-        <Card>
-          <CardHeader>
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>生成结果</CardTitle>
-                <CardDescription>AI为您生成的营销文案</CardDescription>
+              <div className="flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-blue-600" />
+                <CardTitle className="text-sm">生成结果</CardTitle>
               </div>
               {generatedContent && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopy}
-                >
-                  {copyStatus === 'success' ? (
-                    <>
-                      <Copy className="mr-2 h-4 w-4" />
-                      已复制
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-2 h-4 w-4" />
-                      复制
-                    </>
-                  )}
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopy}
+                    className="h-7 text-[11px]"
+                  >
+                    {copyStatus === 'success' ? (
+                      <>
+                        <span className="mr-1 text-green-600">✓</span>
+                        已复制
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-1 h-3 w-3" />
+                        复制
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleDownload}
+                    className="h-7 text-[11px] bg-blue-500 hover:bg-blue-600"
+                  >
+                    {downloadStatus === 'success' ? (
+                      <>
+                        <span className="mr-1">✓</span>
+                        已保存
+                      </>
+                    ) : (
+                      <>
+                        <Download className="mr-1 h-3 w-3" />
+                        下载
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="min-h-[400px] rounded-lg border bg-slate-50 dark:bg-slate-900 p-4">
+            <div className="min-h-[320px] rounded-lg border bg-muted/30 p-4">
               {isLoading ? (
-                <div className="flex h-[400px] items-center justify-center">
+                <div className="flex h-[320px] items-center justify-center">
                   <div className="text-center">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-                    <p className="mt-2 text-sm text-muted-foreground">AI正在创作中...</p>
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-500" />
+                    <p className="mt-2 text-xs text-muted-foreground">AI正在创作中...</p>
                   </div>
                 </div>
               ) : generatedContent ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                  {generatedContent}
+                <div className="relative">
+                  <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed">
+                    {generatedContent}
+                  </div>
                 </div>
               ) : (
-                <div className="flex h-[400px] items-center justify-center text-muted-foreground">
+                <div className="flex h-[320px] items-center justify-center text-muted-foreground">
                   <div className="text-center">
-                    <Sparkles className="mx-auto h-12 w-12 opacity-20" />
-                    <p className="mt-2">填写商品信息后点击生成</p>
-                    <p className="text-xs">AI将为您创作专业文案</p>
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
+                      <Sparkles className="h-6 w-6 opacity-40" />
+                    </div>
+                    <p className="text-xs">填写商品信息后点击生成</p>
+                    <p className="text-[11px] text-muted-foreground/70">AI将为您创作专业文案</p>
                   </div>
                 </div>
               )}
