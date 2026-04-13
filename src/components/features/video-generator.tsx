@@ -7,14 +7,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Loader2, Sparkles, Upload, Download, Play, Pause } from 'lucide-react';
+import { Loader2, Sparkles, Upload, Download, Play, Pause, Wand2, CheckCircle } from 'lucide-react';
 import AdBanner from '@/components/ui/ad-banner';
 
 export default function VideoGenerator() {
   const [sourceImage, setSourceImage] = useState<File | null>(null);
   const [prompt, setPrompt] = useState('');
+  const [optimizedPrompt, setOptimizedPrompt] = useState('');
   const [generatedVideo, setGeneratedVideo] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizeStatus, setOptimizeStatus] = useState<'idle' | 'success'>('idle');
   const [isPlaying, setIsPlaying] = useState(false);
   const [showAd, setShowAd] = useState(false);
   const [duration, setDuration] = useState([5]);
@@ -34,6 +37,76 @@ export default function VideoGenerator() {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       setSourceImage(file);
+    }
+  };
+
+  // AI优化动作描述
+  const handleOptimizePrompt = async () => {
+    if (!prompt.trim()) {
+      alert('请先输入动作描述');
+      return;
+    }
+
+    setIsOptimizing(true);
+    setOptimizedPrompt('');
+
+    try {
+      const response = await fetch('/api/rewrite-video-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          pose: selectedPose,
+          imageType: '商品模特图'
+        })
+      });
+
+      if (response.ok) {
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.content) {
+                    setOptimizedPrompt(prev => prev + parsed.content);
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          }
+        }
+        setOptimizeStatus('success');
+      } else {
+        throw new Error('优化失败');
+      }
+    } catch (error) {
+      console.error('优化动作描述失败:', error);
+      alert('优化失败，请稍后重试');
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  // 应用优化后的提示词
+  const handleApplyOptimized = () => {
+    if (optimizedPrompt) {
+      setPrompt(optimizedPrompt);
+      setOptimizeStatus('idle');
+      setOptimizedPrompt('');
     }
   };
 
@@ -183,14 +256,57 @@ export default function VideoGenerator() {
 
             {/* 文本描述 */}
             <div className="space-y-2">
-              <Label>动作描述（可选）</Label>
+              <div className="flex items-center justify-between">
+                <Label>动作描述（可选）</Label>
+                {prompt && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleOptimizePrompt}
+                    disabled={isOptimizing}
+                    className="h-6 text-[10px] px-2"
+                  >
+                    {isOptimizing ? (
+                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                    ) : optimizeStatus === 'success' ? (
+                      <CheckCircle className="h-2.5 w-2.5 text-green-600" />
+                    ) : (
+                      <Wand2 className="h-2.5 w-2.5" />
+                    )}
+                    <span className="ml-1">AI优化</span>
+                  </Button>
+                )}
+              </div>
               <Textarea
                 placeholder="例如：模特缓慢转身展示服装细节..."
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e) => {
+                  setPrompt(e.target.value);
+                  setOptimizeStatus('idle');
+                }}
                 rows={2}
                 className="resize-none"
               />
+              
+              {/* 优化结果预览 */}
+              {optimizedPrompt && (
+                <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-green-600 font-medium">AI优化结果：</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleApplyOptimized}
+                      className="h-5 text-[10px] text-blue-600 hover:text-blue-700"
+                    >
+                      应用
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground whitespace-pre-wrap">
+                    {optimizedPrompt}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* 动作选择 */}

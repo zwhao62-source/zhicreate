@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Loader2, Sparkles, Upload, Download, Wand2 } from 'lucide-react';
+import { Loader2, Sparkles, Upload, Download, Wand2, Minimize2, Maximize2, RefreshCw } from 'lucide-react';
 import AdBanner from '@/components/ui/ad-banner';
 
 export default function ImageProcessor() {
@@ -16,6 +16,13 @@ export default function ImageProcessor() {
   const [showAd, setShowAd] = useState(false);
   const [selectedFunction, setSelectedFunction] = useState('beautify');
   const [intensity, setIntensity] = useState([50]);
+  const [compressionQuality, setCompressionQuality] = useState([80]); // 压缩质量
+  const [targetWidth, setTargetWidth] = useState<number>(0); // 目标宽度
+  const [targetHeight, setTargetHeight] = useState<number>(0); // 目标高度
+  const [maintainRatio, setMaintainRatio] = useState(true);
+  const [outputFormat, setOutputFormat] = useState<'png' | 'jpeg' | 'webp'>('jpeg');
+  const [originalSize, setOriginalSize] = useState<number>(0);
+  const [processedSize, setProcessedSize] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const functions = [
@@ -60,6 +67,24 @@ export default function ImageProcessor() {
       name: '一键换装', 
       icon: '👔',
       desc: '智能更换模特服装' 
+    },
+    { 
+      id: 'compress', 
+      name: '图片压缩', 
+      icon: '📦',
+      desc: '减小图片文件大小，支持批量' 
+    },
+    { 
+      id: 'convert', 
+      name: '格式转换', 
+      icon: '🔄',
+      desc: 'PNG/JPG/WebP互转' 
+    },
+    { 
+      id: 'resize', 
+      name: '调整尺寸', 
+      icon: '📐',
+      desc: '修改图片宽高尺寸' 
     }
   ];
 
@@ -68,7 +93,86 @@ export default function ImageProcessor() {
     if (file && file.type.startsWith('image/')) {
       setSourceImage(file);
       setProcessedImage('');
+      setOriginalSize(file.size);
+      setProcessedSize(0);
+      
+      // 获取图片原始尺寸
+      const img = new Image();
+      img.onload = () => {
+        setTargetWidth(img.width);
+        setTargetHeight(img.height);
+      };
+      img.src = URL.createObjectURL(file);
     }
+  };
+
+  // 本地图片处理：压缩/格式转换/尺寸调整
+  const handleLocalProcess = async (): Promise<string | null> => {
+    if (!sourceImage) return null;
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+
+        // 根据功能设置画布尺寸
+        if (selectedFunction === 'resize' && targetWidth > 0 && targetHeight > 0) {
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+        } else if (selectedFunction === 'resize' && targetWidth > 0) {
+          const ratio = img.height / img.width;
+          canvas.width = targetWidth;
+          canvas.height = Math.round(targetWidth * ratio);
+        } else if (selectedFunction === 'resize' && targetHeight > 0) {
+          const ratio = img.width / img.height;
+          canvas.width = Math.round(targetHeight * ratio);
+          canvas.height = targetHeight;
+        } else {
+          canvas.width = img.width;
+          canvas.height = img.height;
+        }
+
+        // 绘制图片
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // 设置输出格式和质量
+        let mimeType = 'image/png';
+        let quality = compressionQuality[0] / 100;
+
+        if (selectedFunction === 'compress' || selectedFunction === 'convert' || selectedFunction === 'resize') {
+          switch (outputFormat) {
+            case 'jpeg':
+              mimeType = 'image/jpeg';
+              break;
+            case 'webp':
+              mimeType = 'image/webp';
+              break;
+            case 'png':
+            default:
+              mimeType = 'image/png';
+              quality = 1; // PNG不支持质量参数
+              break;
+          }
+        }
+
+        // 转换为blob
+        canvas.toBlob((blob) => {
+          if (blob) {
+            setProcessedSize(blob.size);
+            const url = URL.createObjectURL(blob);
+            resolve(url);
+          } else {
+            resolve(null);
+          }
+        }, mimeType, quality);
+      };
+      img.src = URL.createObjectURL(sourceImage);
+    });
   };
 
   const handleProcess = async () => {
@@ -77,6 +181,28 @@ export default function ImageProcessor() {
       return;
     }
 
+    // 本地处理功能（压缩、格式转换、尺寸调整）
+    if (['compress', 'convert', 'resize'].includes(selectedFunction)) {
+      setIsProcessing(true);
+      setProcessedImage('');
+      
+      try {
+        const result = await handleLocalProcess();
+        if (result) {
+          setProcessedImage(result);
+        } else {
+          throw new Error('处理失败');
+        }
+      } catch (error) {
+        console.error('图片处理失败:', error);
+        alert('图片处理失败，请稍后重试');
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    // AI处理功能
     setIsProcessing(true);
     setShowAd(true);
 
@@ -117,10 +243,25 @@ export default function ImageProcessor() {
     if (processedImage) {
       const link = document.createElement('a');
       link.href = processedImage;
-      link.download = `processed-image.png`;
+      const ext = outputFormat === 'jpeg' ? 'jpg' : outputFormat;
+      link.download = `processed-image.${ext}`;
       link.click();
     }
   };
+
+  // 格式化文件大小
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // 计算压缩比例
+  const compressionRatio = originalSize > 0 && processedSize > 0
+    ? Math.round((1 - processedSize / originalSize) * 100)
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -225,18 +366,205 @@ export default function ImageProcessor() {
               </div>
             </div>
 
-            {/* 强度调节 */}
-            <div className="space-y-2">
-              <Label>处理强度: {intensity[0]}%</Label>
-              <Slider
-                value={intensity}
-                onValueChange={setIntensity}
-                min={0}
-                max={100}
-                step={5}
-                className="w-full"
-              />
-            </div>
+            {/* 强度调节 - AI功能 */}
+            {['beautify', 'enhance'].includes(selectedFunction) && (
+              <div className="space-y-2">
+                <Label>处理强度: {intensity[0]}%</Label>
+                <Slider
+                  value={intensity}
+                  onValueChange={setIntensity}
+                  min={0}
+                  max={100}
+                  step={5}
+                  className="w-full"
+                />
+              </div>
+            )}
+
+            {/* 压缩质量设置 */}
+            {selectedFunction === 'compress' && (
+              <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                <div className="space-y-2">
+                  <Label>压缩质量: {compressionQuality[0]}%</Label>
+                  <Slider
+                    value={compressionQuality}
+                    onValueChange={setCompressionQuality}
+                    min={10}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    数值越低文件越小，但可能影响清晰度
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>输出格式</Label>
+                  <div className="flex gap-2">
+                    {(['png', 'jpeg', 'webp'] as const).map((fmt) => (
+                      <Badge
+                        key={fmt}
+                        variant={outputFormat === fmt ? 'default' : 'outline'}
+                        className={`cursor-pointer ${
+                          outputFormat === fmt ? 'bg-cyan-500' : ''
+                        }`}
+                        onClick={() => setOutputFormat(fmt)}
+                      >
+                        {fmt.toUpperCase()}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                {originalSize > 0 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    原始大小: {formatFileSize(originalSize)}
+                    {processedSize > 0 && (
+                      <> → 处理后: {formatFileSize(processedSize)} ({compressionRatio > 0 ? `减少${compressionRatio}%` : '增加'})</>
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* 格式转换设置 */}
+            {selectedFunction === 'convert' && (
+              <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                <div className="space-y-2">
+                  <Label>转换为</Label>
+                  <div className="flex gap-2">
+                    {(['png', 'jpeg', 'webp'] as const).map((fmt) => (
+                      <Badge
+                        key={fmt}
+                        variant={outputFormat === fmt ? 'default' : 'outline'}
+                        className={`cursor-pointer ${
+                          outputFormat === fmt ? 'bg-cyan-500' : ''
+                        }`}
+                        onClick={() => setOutputFormat(fmt)}
+                      >
+                        {fmt.toUpperCase()}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {outputFormat === 'png' && 'PNG: 无损压缩，支持透明背景'}
+                    {outputFormat === 'jpeg' && 'JPEG: 有损压缩，文件更小'}
+                    {outputFormat === 'webp' && 'WebP: 体积最小，现代浏览器支持'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>压缩质量: {compressionQuality[0]}%</Label>
+                  <Slider
+                    value={compressionQuality}
+                    onValueChange={setCompressionQuality}
+                    min={10}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 尺寸调整设置 */}
+            {selectedFunction === 'resize' && (
+              <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <Label>输出尺寸</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setMaintainRatio(!maintainRatio)}
+                    className="h-6 text-[10px]"
+                  >
+                    <RefreshCw className={`h-3 w-3 mr-1 ${maintainRatio ? 'text-cyan-500' : ''}`} />
+                    {maintainRatio ? '锁定比例' : '解锁比例'}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">宽度</Label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        value={targetWidth || ''}
+                        onChange={(e) => {
+                          const w = parseInt(e.target.value) || 0;
+                          setTargetWidth(w);
+                          if (maintainRatio && w > 0 && sourceImage) {
+                            const ratio = targetHeight / targetWidth;
+                            setTargetHeight(Math.round(w * ratio));
+                          }
+                        }}
+                        placeholder="宽"
+                        className="w-full h-8 px-2 text-xs border rounded"
+                      />
+                      <span className="text-xs text-muted-foreground">px</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">高度</Label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        value={targetHeight || ''}
+                        onChange={(e) => {
+                          const h = parseInt(e.target.value) || 0;
+                          setTargetHeight(h);
+                          if (maintainRatio && h > 0 && sourceImage) {
+                            const ratio = targetWidth / targetHeight;
+                            setTargetWidth(Math.round(h * ratio));
+                          }
+                        }}
+                        placeholder="高"
+                        className="w-full h-8 px-2 text-xs border rounded"
+                      />
+                      <span className="text-xs text-muted-foreground">px</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  {[25, 50, 75, 100].map((scale) => (
+                    <Button
+                      key={scale}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const img = new Image();
+                        img.onload = () => {
+                          const w = Math.round(img.width * scale / 100);
+                          const h = Math.round(img.height * scale / 100);
+                          setTargetWidth(w);
+                          setTargetHeight(h);
+                        };
+                        if (sourceImage) {
+                          img.src = URL.createObjectURL(sourceImage);
+                        }
+                      }}
+                      className="flex-1 h-7 text-[10px]"
+                    >
+                      {scale}%
+                    </Button>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  <Label>输出格式</Label>
+                  <div className="flex gap-2">
+                    {(['png', 'jpeg', 'webp'] as const).map((fmt) => (
+                      <Badge
+                        key={fmt}
+                        variant={outputFormat === fmt ? 'default' : 'outline'}
+                        className={`cursor-pointer ${
+                          outputFormat === fmt ? 'bg-cyan-500' : ''
+                        }`}
+                        onClick={() => setOutputFormat(fmt)}
+                      >
+                        {fmt.toUpperCase()}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Button
               onClick={handleProcess}
@@ -251,7 +579,10 @@ export default function ImageProcessor() {
               ) : (
                 <>
                   <Wand2 className="mr-2 h-4 w-4" />
-                  开始处理
+                  {selectedFunction === 'compress' && '压缩图片'}
+                  {selectedFunction === 'convert' && '转换格式'}
+                  {selectedFunction === 'resize' && '调整尺寸'}
+                  {!['compress', 'convert', 'resize'].includes(selectedFunction) && '开始处理'}
                 </>
               )}
             </Button>
@@ -291,6 +622,25 @@ export default function ImageProcessor() {
                     alt="处理结果"
                     className="w-full rounded-lg object-contain"
                   />
+                  {/* 文件大小对比 */}
+                  {processedSize > 0 && (
+                    <div className="flex items-center justify-center gap-4 p-2 bg-muted/30 rounded-lg">
+                      <div className="text-center">
+                        <p className="text-[10px] text-muted-foreground">原始大小</p>
+                        <p className="text-sm font-medium">{formatFileSize(originalSize)}</p>
+                      </div>
+                      <span className="text-muted-foreground">→</span>
+                      <div className="text-center">
+                        <p className="text-[10px] text-muted-foreground">处理后</p>
+                        <p className="text-sm font-medium">{formatFileSize(processedSize)}</p>
+                      </div>
+                      {compressionRatio !== 0 && (
+                        <Badge variant={compressionRatio > 0 ? 'default' : 'destructive'} className="text-xs">
+                          {compressionRatio > 0 ? `减少${compressionRatio}%` : `增加${-compressionRatio}%`}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
