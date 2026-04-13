@@ -36,51 +36,21 @@ export default function DetailDesign() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sizes = [
-    { id: '750x500', name: '750×500', desc: '移动端标准', platform: 'mobile' },
-    { id: '750x800', name: '750×800', desc: '移动端中长', platform: 'mobile' },
-    { id: '750x1000', name: '750×1000', desc: '移动端长图', platform: 'mobile' },
-    { id: '1200x800', name: '1200×800', desc: 'PC端标准', platform: 'desktop' },
-    { id: '1200x1200', name: '1200×1200', desc: 'PC端方图', platform: 'desktop' },
-    { id: '800x1200', name: '800×1200', desc: '移动端竖版', platform: 'mobile' }
+    { id: '750x500', name: '750×500', desc: '移动端标准' },
+    { id: '750x800', name: '750×800', desc: '移动端中长' },
+    { id: '750x1000', name: '750×1000', desc: '移动端长图' },
+    { id: '1200x800', name: '1200×800', desc: 'PC端标准' },
+    { id: '1200x1200', name: '1200×1200', desc: 'PC端方图' },
+    { id: '800x1200', name: '800×1200', desc: '移动端竖版' }
   ];
 
   const templates = [
-    { 
-      id: 'showcase', 
-      name: '产品展示', 
-      icon: '📦',
-      desc: '突出产品本身' 
-    },
-    { 
-      id: 'highlight', 
-      name: '卖点突出', 
-      icon: '✨',
-      desc: '强调核心优势' 
-    },
-    { 
-      id: 'scene', 
-      name: '使用场景', 
-      icon: '🎬',
-      desc: '真实场景展示' 
-    },
-    { 
-      id: 'feature', 
-      name: '参数说明', 
-      icon: '📋',
-      desc: '专业参数' 
-    },
-    { 
-      id: 'quality', 
-      name: '质量保证', 
-      icon: '🏆',
-      desc: '品质认证' 
-    },
-    { 
-      id: 'promotion', 
-      name: '促销活动', 
-      icon: '🎉',
-      desc: '促销氛围' 
-    }
+    { id: 'showcase', name: '产品展示', icon: '📦' },
+    { id: 'highlight', name: '卖点突出', icon: '✨' },
+    { id: 'scene', name: '使用场景', icon: '🎬' },
+    { id: 'feature', name: '参数说明', icon: '📋' },
+    { id: 'quality', name: '质量保证', icon: '🏆' },
+    { id: 'promotion', name: '促销活动', icon: '🎉' }
   ];
 
   const styles = [
@@ -266,7 +236,7 @@ export default function DetailDesign() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* 广告横幅 */}
       {showAd && (
         <AdBanner
@@ -281,47 +251,45 @@ export default function DetailDesign() {
       )}
 
       {/* 头部标题 */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-lg shadow-green-500/20">
-          <Layout className="h-6 w-6 text-white" />
+      <div className="flex items-center gap-2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
+          <Layout className="h-4 w-4 text-white" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-            AI电商详情图设计
-          </h2>
-          <p className="text-sm text-muted-foreground">智能生成专业电商详情页图片</p>
+          <h2 className="text-lg font-semibold">AI电商详情图设计</h2>
+          <p className="text-xs text-muted-foreground">智能生成专业电商详情页图片</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* 左侧输入区域 */}
-        <Card className="xl:col-span-5">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Settings2 className="h-5 w-5 text-emerald-600" />
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-1.5">
+              <Settings2 className="h-3.5 w-3.5 text-emerald-600" />
               配置详情图
             </CardTitle>
-            <CardDescription>上传商品图并设置参数，AI将生成专业详情图</CardDescription>
+            <CardDescription className="text-xs">设置参数，AI生成专业详情图</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent className="space-y-4">
             {/* 图片上传 */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">商品图片</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">商品图片</Label>
               <div
-                className="relative flex min-h-[160px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/20 hover:border-emerald-500/50 transition-all duration-200 bg-gradient-to-br from-muted/30 to-muted/10 hover:from-emerald-50 hover:to-teal-50 dark:hover:from-emerald-950/30 dark:hover:to-teal-950/30"
+                className="relative flex min-h-[100px] cursor-pointer items-center justify-center rounded-lg border border-dashed border-muted-foreground/25 hover:border-emerald-500/50 transition-colors bg-muted/20"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {productImage ? (
-                  <div className="relative p-2">
+                  <div className="relative p-1.5">
                     <img
                       src={URL.createObjectURL(productImage)}
                       alt="商品图"
-                      className="max-h-[140px] object-contain rounded-lg"
+                      className="max-h-[90px] object-contain rounded"
                     />
                     <Button
                       variant="destructive"
                       size="icon"
-                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                      className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full text-[10px]"
                       onClick={(e) => {
                         e.stopPropagation();
                         setProductImage(null);
@@ -331,12 +299,9 @@ export default function DetailDesign() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="text-center py-4">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center mb-3">
-                      <Upload className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <p className="text-sm font-medium">点击上传商品图</p>
-                    <p className="text-xs text-muted-foreground mt-1">支持 JPG、PNG 格式</p>
+                  <div className="text-center py-3">
+                    <Upload className="h-5 w-5 mx-auto text-muted-foreground/50 mb-1.5" />
+                    <p className="text-[11px] text-muted-foreground">点击上传商品图</p>
                   </div>
                 )}
               </div>
@@ -350,159 +315,130 @@ export default function DetailDesign() {
             </div>
 
             {/* AI卖点生成 */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">商品卖点</Label>
-              <div className="flex gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">商品卖点</Label>
+              <div className="flex gap-1.5">
                 <Input
-                  placeholder="输入商品名称"
+                  placeholder="商品名称"
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
-                  className="flex-1"
+                  className="h-7 text-xs flex-1"
                 />
                 <Button
                   onClick={handleGenerateSellingPoints}
                   disabled={isGeneratingPoints || !productName}
-                  size="sm"
-                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                  className="h-7 px-2 text-xs bg-emerald-500 hover:bg-emerald-600"
                 >
                   {isGeneratingPoints ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-1" />
-                      AI生成
-                    </>
+                    <Sparkles className="h-3 w-3" />
                   )}
                 </Button>
               </div>
               <Textarea
-                placeholder="输入商品卖点，每行一个，如：&#10;1. 优质面料，透气舒适&#10;2. 多口袋设计，实用便捷"
+                placeholder="卖点，每行一个"
                 value={sellingPoints}
                 onChange={(e) => setSellingPoints(e.target.value)}
-                rows={3}
-                className="resize-none text-sm"
+                rows={2}
+                className="resize-none text-xs"
               />
-              <p className="text-xs text-muted-foreground">
-                💡 AI会智能将卖点分组，每张图最多3个，超过自动生成多张
-              </p>
             </div>
 
             {/* 尺寸设置 */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium flex items-center gap-2">
-                <Ruler className="h-4 w-4 text-emerald-600" />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Ruler className="h-3 w-3" />
                 图片尺寸
               </Label>
               
               <Tabs value={sizeMode} onValueChange={(v) => setSizeMode(v as 'preset' | 'custom')} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 h-9">
-                  <TabsTrigger value="preset" className="text-xs gap-1">
-                    <Grid3X3 className="h-3 w-3" />
-                    预设尺寸
+                <TabsList className="grid w-full grid-cols-2 h-7">
+                  <TabsTrigger value="preset" className="text-[11px] gap-1">
+                    <Grid3X3 className="h-2.5 w-2.5" />
+                    预设
                   </TabsTrigger>
-                  <TabsTrigger value="custom" className="text-xs gap-1">
-                    <Settings2 className="h-3 w-3" />
+                  <TabsTrigger value="custom" className="text-[11px] gap-1">
+                    <Settings2 className="h-2.5 w-2.5" />
                     自定义
                   </TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="preset" className="mt-3">
-                  <div className="grid grid-cols-3 gap-2">
+                <TabsContent value="preset" className="mt-2">
+                  <div className="grid grid-cols-3 gap-1.5">
                     {sizes.map((size) => (
                       <Button
                         key={size.id}
                         variant={selectedSize === size.id ? 'default' : 'outline'}
-                        size="sm"
+                        className={`h-8 text-[11px] ${selectedSize === size.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
                         onClick={() => setSelectedSize(size.id)}
-                        className={`flex flex-col h-auto py-2 ${
-                          selectedSize === size.id 
-                            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 border-emerald-500' 
-                            : ''
-                        }`}
                       >
-                        <span className="text-xs font-semibold">{size.name}</span>
-                        <span className="text-[10px] opacity-70">{size.desc}</span>
+                        {size.name}
                       </Button>
                     ))}
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="custom" className="mt-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 space-y-1">
-                      <Label className="text-xs text-muted-foreground">宽度 (px)</Label>
-                      <Input
-                        type="number"
-                        value={customWidth}
-                        onChange={(e) => setCustomWidth(e.target.value)}
-                        min={100}
-                        max={2000}
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="text-muted-foreground mt-5">×</div>
-                    <div className="flex-1 space-y-1">
-                      <Label className="text-xs text-muted-foreground">高度 (px)</Label>
-                      <Input
-                        type="number"
-                        value={customHeight}
-                        onChange={(e) => setCustomHeight(e.target.value)}
-                        min={100}
-                        max={2000}
-                        className="h-9"
-                      />
-                    </div>
+                <TabsContent value="custom" className="mt-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={customWidth}
+                      onChange={(e) => setCustomWidth(e.target.value)}
+                      min={100}
+                      max={2000}
+                      className="h-7 text-xs w-16"
+                      placeholder="宽"
+                    />
+                    <span className="text-muted-foreground text-xs">×</span>
+                    <Input
+                      type="number"
+                      value={customHeight}
+                      onChange={(e) => setCustomHeight(e.target.value)}
+                      min={100}
+                      max={2000}
+                      className="h-7 text-xs w-16"
+                      placeholder="高"
+                    />
+                    <span className="text-muted-foreground text-[10px]">px</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    建议尺寸：宽度 750-1200px，高度 500-1500px
-                  </p>
                 </TabsContent>
               </Tabs>
             </div>
 
             {/* 设计模板 */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium flex items-center gap-2">
-                <Palette className="h-4 w-4 text-emerald-600" />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Palette className="h-3 w-3" />
                 设计模板
               </Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-6 gap-1">
                 {templates.map((template) => (
                   <Button
                     key={template.id}
                     variant={selectedTemplate === template.id ? 'default' : 'outline'}
-                    size="sm"
+                    className={`h-8 flex flex-col gap-0.5 py-1 ${selectedTemplate === template.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
                     onClick={() => setSelectedTemplate(template.id)}
-                    className={`flex flex-col h-auto py-2 ${
-                      selectedTemplate === template.id 
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 border-emerald-500' 
-                        : ''
-                    }`}
                   >
-                    <span className="text-lg">{template.icon}</span>
-                    <span className="text-xs font-medium">{template.name}</span>
+                    <span className="text-sm">{template.icon}</span>
+                    <span className="text-[9px] leading-none">{template.name}</span>
                   </Button>
                 ))}
               </div>
             </div>
 
             {/* 设计风格 */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">设计风格</Label>
-              <div className="flex gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">设计风格</Label>
+              <div className="flex gap-1">
                 {styles.map((style) => (
                   <Button
                     key={style.id}
                     variant={selectedStyle === style.id ? 'default' : 'outline'}
-                    size="sm"
+                    className={`flex-1 h-7 text-[11px] ${selectedStyle === style.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
                     onClick={() => setSelectedStyle(style.id)}
-                    className={`flex-1 ${
-                      selectedStyle === style.id 
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 border-emerald-500' 
-                        : ''
-                    }`}
                   >
-                    <span className={`text-xs px-2 py-1 rounded ${style.color}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${style.color}`}>
                       {style.name}
                     </span>
                   </Button>
@@ -511,10 +447,10 @@ export default function DetailDesign() {
             </div>
 
             {/* 生成质量 */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">生成质量</Label>
-                <Badge variant="secondary" className="text-xs">{quality[0]}%</Badge>
+                <Label className="text-xs font-medium text-muted-foreground">生成质量</Label>
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{quality[0]}%</Badge>
               </div>
               <Slider
                 value={quality}
@@ -522,7 +458,7 @@ export default function DetailDesign() {
                 min={60}
                 max={100}
                 step={5}
-                className="w-full [&_[role=slider]]:bg-gradient-to-r [&_[role=slider]]:from-emerald-500 [&_[role=slider]]:to-teal-600"
+                className="w-full [&_[role=slider]]:bg-emerald-500"
               />
             </div>
 
@@ -530,16 +466,16 @@ export default function DetailDesign() {
             <Button
               onClick={handleGenerate}
               disabled={isGenerating || (!productImage && !sellingPoints)}
-              className="w-full h-11 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:via-green-600 hover:to-teal-700 shadow-lg shadow-green-500/25"
+              className="w-full h-8 text-xs bg-emerald-500 hover:bg-emerald-600"
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                   AI设计中...
                 </>
               ) : (
                 <>
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <Sparkles className="mr-1.5 h-3 w-3" />
                   生成详情图
                 </>
               )}
@@ -548,27 +484,24 @@ export default function DetailDesign() {
         </Card>
 
         {/* 右侧输出区域 */}
-        <Card className="xl:col-span-7">
-          <CardHeader className="pb-4">
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <ImageIcon className="h-5 w-5 text-emerald-600" />
-                  生成结果
-                </CardTitle>
-                <CardDescription>AI生成的电商详情图</CardDescription>
+              <div className="flex items-center gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
+                <CardTitle className="text-sm">生成结果</CardTitle>
               </div>
-              {generatedImages.length > 0 && generationInfo && (
+              {generatedImages.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400">
+                  <Badge variant="outline" className="text-[10px] h-5 bg-emerald-50 text-emerald-700 border-emerald-200">
                     {generatedImages.length} 张
                   </Badge>
                   <Button 
                     size="sm" 
                     onClick={handleDownloadAll}
-                    className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                    className="h-6 text-[11px] px-2 bg-emerald-500 hover:bg-emerald-600"
                   >
-                    <Download className="h-4 w-4 mr-1" />
+                    <Download className="h-3 w-3 mr-1" />
                     批量下载
                   </Button>
                 </div>
@@ -576,80 +509,75 @@ export default function DetailDesign() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="min-h-[500px]">
+            <div className="min-h-[400px]">
               {isGenerating ? (
-                <div className="flex flex-col items-center justify-center h-[500px]">
-                  <div className="relative">
-                    <div className="w-20 h-20 rounded-full border-4 border-emerald-200 border-t-emerald-500 animate-spin" />
-                    <div className="absolute inset-0 w-20 h-20 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 animate-pulse" />
-                  </div>
-                  <p className="mt-6 text-sm font-medium text-muted-foreground">AI正在设计中...</p>
-                  <p className="text-xs text-muted-foreground mt-1">预计需要 30-60 秒</p>
+                <div className="flex flex-col items-center justify-center h-[400px]">
+                  <div className="w-12 h-12 rounded-full border-2 border-emerald-200 border-t-emerald-500 animate-spin" />
+                  <p className="mt-3 text-xs text-muted-foreground">AI正在设计中...</p>
+                  <p className="text-[10px] text-muted-foreground">预计需要 30-60 秒</p>
                 </div>
               ) : generatedImages.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="font-medium">
-                        {getFinalSize()} px
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {generationInfo?.pointGroups || 1} 个卖点分组，每组 {generationInfo?.pointsPerGroup || 3} 个卖点
-                      </span>
-                    </div>
+                <div className="space-y-3">
+                  <div className="bg-muted/50 rounded-md px-2.5 py-1.5 flex items-center justify-between">
+                    <Badge variant="outline" className="text-[10px] h-5 bg-white">
+                      {getFinalSize()} px
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">
+                      {generationInfo?.pointGroups || 1} 分组，每组 {generationInfo?.pointsPerGroup || 3} 个卖点
+                    </span>
                   </div>
                   
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2.5">
                     {generatedImages.map((imageUrl, index) => (
                       <div 
                         key={index} 
-                        className="relative group bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-3 border border-muted/50"
+                        className="bg-muted/30 rounded-lg p-2 border border-muted/50"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant="secondary" className="font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <Badge variant="secondary" className="text-[10px] h-5 bg-emerald-100 text-emerald-700">
                             详情图 {index + 1} / {generatedImages.length}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] text-muted-foreground">
                             卖点 {index * 3 + 1}-{Math.min((index + 1) * 3, (generationInfo?.pointGroups || 1) * 3)}
                           </span>
                         </div>
                         
-                        <div className="relative rounded-lg overflow-hidden bg-white dark:bg-slate-800">
+                        <div className="relative rounded overflow-hidden bg-white">
                           <img
                             src={imageUrl}
                             alt={`详情图 ${index + 1}`}
-                            className="w-full object-contain cursor-pointer hover:opacity-95 transition-opacity"
+                            className="w-full object-contain cursor-pointer hover:opacity-95"
                             onClick={() => handlePreview(imageUrl)}
                           />
                           
                           {/* 操作按钮 */}
-                          <div className="absolute bottom-3 right-3 flex gap-2">
+                          <div className="absolute bottom-1.5 right-1.5 flex gap-1">
                             <Button
                               size="icon"
                               variant="secondary"
-                              className="h-8 w-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm shadow-md hover:bg-white"
+                              className="h-6 w-6 bg-white/90 hover:bg-white shadow-sm"
                               onClick={() => handlePreview(imageUrl)}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3 w-3" />
                             </Button>
                             <Button
                               size="icon"
                               variant="secondary"
-                              className="h-8 w-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm shadow-md hover:bg-white"
+                              className="h-6 w-6 bg-white/90 hover:bg-white shadow-sm"
                               onClick={() => handleCopyLink(imageUrl, index)}
                             >
                               {copyStatus[index] === 'success' ? (
-                                <span className="text-xs text-green-600">✓</span>
+                                <span className="text-[10px] text-green-600 font-medium">✓</span>
                               ) : (
-                                <Copy className="h-4 w-4" />
+                                <Copy className="h-3 w-3" />
                               )}
                             </Button>
                             <Button
                               size="icon"
-                              className="h-8 w-8 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-md"
+                              className="h-6 w-6 bg-emerald-500 hover:bg-emerald-600 shadow-sm"
                               onClick={() => handleDownload(imageUrl, index)}
                             >
-                              <Download className="h-4 w-4" />
+                              <Download className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
@@ -659,21 +587,22 @@ export default function DetailDesign() {
                   
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={handleGenerate}
-                    className="w-full"
+                    className="w-full h-7 text-[11px]"
                   >
-                    <Sparkles className="mr-2 h-4 w-4" />
+                    <Sparkles className="mr-1 h-3 w-3" />
                     重新生成
                   </Button>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-[500px] text-center">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 flex items-center justify-center mb-4">
-                    <Layout className="h-12 w-12 text-emerald-400 dark:text-emerald-600" />
+                <div className="flex flex-col items-center justify-center h-[400px] text-center">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <Layout className="h-8 w-8 text-muted-foreground/40" />
                   </div>
-                  <p className="text-base font-medium">开始设计您的详情图</p>
-                  <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-                    上传商品图片，输入卖点描述，选择尺寸和模板，AI将自动生成专业电商详情图
+                  <p className="text-xs font-medium text-muted-foreground">开始设计详情图</p>
+                  <p className="text-[11px] text-muted-foreground/70 mt-1 max-w-[200px]">
+                    上传商品图，输入卖点，AI自动生成专业详情图
                   </p>
                 </div>
               )}
@@ -688,33 +617,31 @@ export default function DetailDesign() {
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setPreviewImage(null)}
         >
-          <div className="relative max-w-6xl max-h-full" onClick={(e) => e.stopPropagation()}>
+          <div className="relative max-w-5xl max-h-full" onClick={(e) => e.stopPropagation()}>
             <img
               src={previewImage}
               alt="预览大图"
-              className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg"
             />
-            <div className="absolute top-4 right-4 flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => setPreviewImage(null)}
-                variant="secondary"
-                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm"
-              >
-                关闭
-              </Button>
-            </div>
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+            <div className="absolute top-3 right-3 flex gap-1.5">
               <Button
                 size="sm"
                 onClick={() => {
                   const index = generatedImages.findIndex(img => img === previewImage);
                   if (index !== -1) handleDownload(previewImage, index);
                 }}
-                className="bg-gradient-to-r from-emerald-500 to-teal-600"
+                className="h-7 text-xs bg-emerald-500 hover:bg-emerald-600"
               >
-                <Download className="mr-1 h-4 w-4" />
-                下载此图
+                <Download className="h-3 w-3 mr-1" />
+                下载
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setPreviewImage(null)}
+                variant="secondary"
+                className="h-7 text-xs bg-white/90 hover:bg-white"
+              >
+                关闭
               </Button>
             </div>
           </div>
