@@ -9,7 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, Upload, Download, Layout, Image as ImageIcon, Copy, Eye, Settings2, Grid3X3, Palette, Ruler } from 'lucide-react';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Loader2, Sparkles, Upload, Download, Layout, Image as ImageIcon, 
+  Copy, Eye, Settings2, Grid3X3, Palette, Ruler, Type, Layers,
+  Palette as PaletteIcon, AlignLeft, Sparkles as SparklesIcon
+} from 'lucide-react';
 import AdBanner from '@/components/ui/ad-banner';
 
 export default function DetailDesign() {
@@ -33,8 +38,13 @@ export default function DetailDesign() {
   const [sizeMode, setSizeMode] = useState<'preset' | 'custom'>('preset');
   const [customWidth, setCustomWidth] = useState('750');
   const [customHeight, setCustomHeight] = useState('800');
+  const [selectedCategory, setSelectedCategory] = useState('fashion');
+  const [selectedColorScheme, setSelectedColorScheme] = useState('elegant');
+  const [selectedLayout, setSelectedLayout] = useState('center');
+  const [selectedFont, setSelectedFont] = useState('modern');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 尺寸选项
   const sizes = [
     { id: '750x500', name: '750×500', desc: '移动端标准' },
     { id: '750x800', name: '750×800', desc: '移动端中长' },
@@ -44,6 +54,48 @@ export default function DetailDesign() {
     { id: '800x1200', name: '800×1200', desc: '移动端竖版' }
   ];
 
+  // 行业分类 - 资深设计师按行业定制
+  const categories = [
+    { id: 'fashion', name: '服装鞋包', icon: '👗', desc: '简约高级' },
+    { id: 'beauty', name: '美妆护肤', icon: '💄', desc: '精致温柔' },
+    { id: 'digital', name: '数码科技', icon: '📱', desc: '科技感' },
+    { id: 'food', name: '食品生鲜', icon: '🍽️', desc: '食欲感' },
+    { id: 'home', name: '家居百货', icon: '🏠', desc: '温馨感' },
+    { id: 'baby', name: '母婴儿童', icon: '🧸', desc: '安全感' },
+    { id: 'sports', name: '运动户外', icon: '⚡', desc: '活力感' },
+    { id: 'jewelry', name: '珠宝配饰', icon: '💎', desc: '奢华感' }
+  ];
+
+  // 专业配色方案 - 每个行业有专属配色
+  const colorSchemes = [
+    { id: 'elegant', name: '优雅莫兰迪', colors: ['#8B7355', '#D4C4B0', '#E8DFD5'], desc: '高级百搭' },
+    { id: 'luxury', name: '奢华香槟', colors: ['#C9A86C', '#F5E6D3', '#2C1810'], desc: '高端质感' },
+    { id: 'fresh', name: '清新自然', colors: ['#7BA05B', '#F5F0E6', '#4A6741'], desc: '清新活力' },
+    { id: 'warm', name: '温暖焦糖', colors: ['#D4865C', '#FDF6F0', '#8B5A3C'], desc: '温馨食欲' },
+    { id: 'tech', name: '科技深蓝', colors: ['#2C3E50', '#ECF0F1', '#3498DB'], desc: '专业信赖' },
+    { id: 'romantic', name: '浪漫玫瑰', colors: ['#D4A5A5', '#FDF2F2', '#8B6B6B'], desc: '温柔精致' },
+    { id: 'minimal', name: '极简黑白', colors: ['#333333', '#FFFFFF', '#666666'], desc: '极简主义' },
+    { id: 'vintage', name: '复古美式', colors: ['#8B4513', '#F5DEB3', '#CD853F'], desc: '复古文艺' }
+  ];
+
+  // 专业版式布局
+  const layouts = [
+    { id: 'center', name: '居中对称', desc: '大气稳重', icon: '⊕' },
+    { id: 'left', name: '左对齐', desc: '现代简约', icon: '≡' },
+    { id: 'magazine', name: '杂志风', desc: '创意时尚', icon: '▦' },
+    { id: 'split', name: '左右分栏', desc: '信息清晰', icon: '▤' },
+    { id: 'overlap', name: '图文叠加', desc: '层次丰富', icon: '◫' }
+  ];
+
+  // 字体风格
+  const fonts = [
+    { id: 'modern', name: '现代无衬线', desc: '简洁有力' },
+    { id: 'elegant', name: '优雅衬线', desc: '高级品质' },
+    { id: 'playful', name: '活泼手写', desc: '亲切友好' },
+    { id: 'bold', name: '粗壮有力', desc: '冲击力强' }
+  ];
+
+  // 设计模板
   const templates = [
     { id: 'showcase', name: '产品展示', icon: '📦' },
     { id: 'highlight', name: '卖点突出', icon: '✨' },
@@ -53,13 +105,6 @@ export default function DetailDesign() {
     { id: 'promotion', name: '促销活动', icon: '🎉' }
   ];
 
-  const styles = [
-    { id: 'minimalist', name: '简约', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
-    { id: 'premium', name: '高端', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' },
-    { id: 'vibrant', name: '活力', color: 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300' },
-    { id: 'professional', name: '商务', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' }
-  ];
-
   const [selectedStyle, setSelectedStyle] = useState('minimalist');
 
   const getFinalSize = () => {
@@ -67,6 +112,10 @@ export default function DetailDesign() {
       return `${customWidth}x${customHeight}`;
     }
     return selectedSize;
+  };
+
+  const getCurrentColorScheme = () => {
+    return colorSchemes.find(c => c.id === selectedColorScheme) || colorSchemes[0];
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,7 +140,7 @@ export default function DetailDesign() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productName,
-          category: selectedTemplate,
+          category: selectedCategory,
           description: sellingPoints
         })
       });
@@ -155,6 +204,11 @@ export default function DetailDesign() {
       formData.append('template', selectedTemplate);
       formData.append('style', selectedStyle);
       formData.append('quality', quality[0].toString());
+      // 新增专业设计参数
+      formData.append('category', selectedCategory);
+      formData.append('colorScheme', selectedColorScheme);
+      formData.append('layout', selectedLayout);
+      formData.append('font', selectedFont);
 
       const response = await fetch('/api/generate-detail-design', {
         method: 'POST',
@@ -261,18 +315,18 @@ export default function DetailDesign() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
         {/* 左侧输入区域 */}
-        <Card className="lg:col-span-2">
+        <Card className="xl:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-1.5">
               <Settings2 className="h-3.5 w-3.5 text-emerald-600" />
-              配置详情图
+              专业设计配置
             </CardTitle>
-            <CardDescription className="text-xs">设置参数，AI生成专业详情图</CardDescription>
+            <CardDescription className="text-xs">多维度精细化设计，打造高级感详情图</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* 图片上传 */}
+            {/* 商品图片上传 */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">商品图片</Label>
               <div
@@ -316,7 +370,10 @@ export default function DetailDesign() {
 
             {/* AI卖点生成 */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">商品卖点</Label>
+              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <SparklesIcon className="h-3 w-3 text-amber-500" />
+                AI卖点生成
+              </Label>
               <div className="flex gap-1.5">
                 <Input
                   placeholder="商品名称"
@@ -327,22 +384,137 @@ export default function DetailDesign() {
                 <Button
                   onClick={handleGenerateSellingPoints}
                   disabled={isGeneratingPoints || !productName}
-                  className="h-7 px-2 text-xs bg-emerald-500 hover:bg-emerald-600"
+                  className="h-7 px-2 text-xs bg-amber-500 hover:bg-amber-600"
                 >
                   {isGeneratingPoints ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
-                    <Sparkles className="h-3 w-3" />
+                    <SparklesIcon className="h-3 w-3" />
                   )}
                 </Button>
               </div>
               <Textarea
-                placeholder="卖点，每行一个"
+                placeholder="卖点，每行一个（AI生成或手动输入）"
                 value={sellingPoints}
                 onChange={(e) => setSellingPoints(e.target.value)}
                 rows={2}
                 className="resize-none text-xs"
               />
+            </div>
+
+            {/* 行业分类 - 核心设计参数 */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Layers className="h-3 w-3" />
+                商品行业
+              </Label>
+              <div className="grid grid-cols-4 gap-1">
+                {categories.map((cat) => (
+                  <Button
+                    key={cat.id}
+                    variant={selectedCategory === cat.id ? 'default' : 'outline'}
+                    className={`h-9 flex flex-col gap-0.5 py-1 ${selectedCategory === cat.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
+                    onClick={() => {
+                      setSelectedCategory(cat.id);
+                      // 自动匹配推荐配色
+                      const categoryColorMap: Record<string, string> = {
+                        fashion: 'elegant',
+                        beauty: 'romantic',
+                        digital: 'tech',
+                        food: 'warm',
+                        home: 'fresh',
+                        baby: 'warm',
+                        sports: 'fresh',
+                        jewelry: 'luxury'
+                      };
+                      setSelectedColorScheme(categoryColorMap[cat.id] || 'elegant');
+                    }}
+                  >
+                    <span className="text-sm">{cat.icon}</span>
+                    <span className="text-[9px] leading-none">{cat.name}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* 配色方案 - 设计师核心 */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <PaletteIcon className="h-3 w-3" />
+                配色方案
+              </Label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {colorSchemes.map((scheme) => (
+                  <Button
+                    key={scheme.id}
+                    variant={selectedColorScheme === scheme.id ? 'default' : 'outline'}
+                    className={`h-auto py-1.5 px-2 ${selectedColorScheme === scheme.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
+                    onClick={() => setSelectedColorScheme(scheme.id)}
+                  >
+                    <div className="flex items-center gap-1 w-full">
+                      <div className="flex gap-0.5">
+                        {scheme.colors.slice(0, 3).map((color, i) => (
+                          <div
+                            key={i}
+                            className="w-4 h-4 rounded-sm border border-muted"
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                      <div className="text-left flex-1">
+                        <div className="text-[10px] font-medium leading-tight">{scheme.name}</div>
+                        <div className="text-[8px] opacity-70">{scheme.desc}</div>
+                      </div>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* 版式布局 */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <AlignLeft className="h-3 w-3" />
+                版式布局
+              </Label>
+              <div className="grid grid-cols-5 gap-1">
+                {layouts.map((layout) => (
+                  <Button
+                    key={layout.id}
+                    variant={selectedLayout === layout.id ? 'default' : 'outline'}
+                    className={`h-8 ${selectedLayout === layout.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
+                    onClick={() => setSelectedLayout(layout.id)}
+                  >
+                    <span className="text-xs">{layout.icon}</span>
+                  </Button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {layouts.find(l => l.id === selectedLayout)?.name} · {layouts.find(l => l.id === selectedLayout)?.desc}
+              </p>
+            </div>
+
+            {/* 字体风格 */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Type className="h-3 w-3" />
+                字体风格
+              </Label>
+              <Select value={selectedFont} onValueChange={setSelectedFont}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {fonts.map((font) => (
+                    <SelectItem key={font.id} value={font.id} className="text-xs">
+                      <div>
+                        <div>{font.name}</div>
+                        <div className="text-[10px] text-muted-foreground">{font.desc}</div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* 尺寸设置 */}
@@ -388,7 +560,6 @@ export default function DetailDesign() {
                       min={100}
                       max={2000}
                       className="h-7 text-xs w-16"
-                      placeholder="宽"
                     />
                     <span className="text-muted-foreground text-xs">×</span>
                     <Input
@@ -398,52 +569,11 @@ export default function DetailDesign() {
                       min={100}
                       max={2000}
                       className="h-7 text-xs w-16"
-                      placeholder="高"
                     />
                     <span className="text-muted-foreground text-[10px]">px</span>
                   </div>
                 </TabsContent>
               </Tabs>
-            </div>
-
-            {/* 设计模板 */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <Palette className="h-3 w-3" />
-                设计模板
-              </Label>
-              <div className="grid grid-cols-6 gap-1">
-                {templates.map((template) => (
-                  <Button
-                    key={template.id}
-                    variant={selectedTemplate === template.id ? 'default' : 'outline'}
-                    className={`h-8 flex flex-col gap-0.5 py-1 ${selectedTemplate === template.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
-                    onClick={() => setSelectedTemplate(template.id)}
-                  >
-                    <span className="text-sm">{template.icon}</span>
-                    <span className="text-[9px] leading-none">{template.name}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* 设计风格 */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">设计风格</Label>
-              <div className="flex gap-1">
-                {styles.map((style) => (
-                  <Button
-                    key={style.id}
-                    variant={selectedStyle === style.id ? 'default' : 'outline'}
-                    className={`flex-1 h-7 text-[11px] ${selectedStyle === style.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
-                    onClick={() => setSelectedStyle(style.id)}
-                  >
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${style.color}`}>
-                      {style.name}
-                    </span>
-                  </Button>
-                ))}
-              </div>
             </div>
 
             {/* 生成质量 */}
@@ -462,11 +592,29 @@ export default function DetailDesign() {
               />
             </div>
 
+            {/* 设计模板 */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">设计模板</Label>
+              <div className="grid grid-cols-6 gap-1">
+                {templates.map((template) => (
+                  <Button
+                    key={template.id}
+                    variant={selectedTemplate === template.id ? 'default' : 'outline'}
+                    className={`h-8 flex flex-col gap-0.5 py-1 ${selectedTemplate === template.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
+                    onClick={() => setSelectedTemplate(template.id)}
+                  >
+                    <span className="text-sm">{template.icon}</span>
+                    <span className="text-[9px] leading-none">{template.name}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             {/* 生成按钮 */}
             <Button
               onClick={handleGenerate}
               disabled={isGenerating || (!productImage && !sellingPoints)}
-              className="w-full h-8 text-xs bg-emerald-500 hover:bg-emerald-600"
+              className="w-full h-9 text-xs bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20"
             >
               {isGenerating ? (
                 <>
@@ -476,7 +624,7 @@ export default function DetailDesign() {
               ) : (
                 <>
                   <Sparkles className="mr-1.5 h-3 w-3" />
-                  生成详情图
+                  生成专业详情图
                 </>
               )}
             </Button>
@@ -484,7 +632,7 @@ export default function DetailDesign() {
         </Card>
 
         {/* 右侧输出区域 */}
-        <Card className="lg:col-span-3">
+        <Card className="xl:col-span-3">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -493,6 +641,16 @@ export default function DetailDesign() {
               </div>
               {generatedImages.length > 0 && (
                 <div className="flex items-center gap-2">
+                  {/* 当前配色预览 */}
+                  <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted/50">
+                    {getCurrentColorScheme().colors.slice(0, 3).map((color, i) => (
+                      <div
+                        key={i}
+                        className="w-3 h-3 rounded-sm border border-muted/50"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
                   <Badge variant="outline" className="text-[10px] h-5 bg-emerald-50 text-emerald-700 border-emerald-200">
                     {generatedImages.length} 张
                   </Badge>
@@ -509,31 +667,46 @@ export default function DetailDesign() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="min-h-[400px]">
+            <div className="min-h-[500px]">
               {isGenerating ? (
-                <div className="flex flex-col items-center justify-center h-[400px]">
-                  <div className="w-12 h-12 rounded-full border-2 border-emerald-200 border-t-emerald-500 animate-spin" />
-                  <p className="mt-3 text-xs text-muted-foreground">AI正在设计中...</p>
-                  <p className="text-[10px] text-muted-foreground">预计需要 30-60 秒</p>
+                <div className="flex flex-col items-center justify-center h-[500px]">
+                  <div className="w-16 h-16 rounded-full border-[3px] border-emerald-200 border-t-emerald-500 animate-spin" />
+                  <p className="mt-4 text-sm font-medium text-emerald-600">AI专业设计师创作中...</p>
+                  <p className="text-xs text-muted-foreground mt-1">正在应用配色方案：{getCurrentColorScheme().name}</p>
+                  <p className="text-[11px] text-muted-foreground">预计需要 30-60 秒</p>
                 </div>
               ) : generatedImages.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="bg-muted/50 rounded-md px-2.5 py-1.5 flex items-center justify-between">
-                    <Badge variant="outline" className="text-[10px] h-5 bg-white">
-                      {getFinalSize()} px
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground">
-                      {generationInfo?.pointGroups || 1} 分组，每组 {generationInfo?.pointsPerGroup || 3} 个卖点
-                    </span>
+                <div className="space-y-4">
+                  {/* 设计信息 */}
+                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg px-4 py-2.5 border border-emerald-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className="text-[10px] h-5 bg-white">
+                            {getFinalSize()} px
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] h-5 bg-white">
+                            {categories.find(c => c.id === selectedCategory)?.name}
+                          </Badge>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          {getCurrentColorScheme().name} · {layouts.find(l => l.id === selectedLayout)?.name} · {fonts.find(f => f.id === selectedFont)?.name}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">
+                        {generationInfo?.pointGroups || 1} 分组，每组 {generationInfo?.pointsPerGroup || 3} 个卖点
+                      </span>
+                    </div>
                   </div>
                   
-                  <div className="space-y-2.5">
+                  {/* 图片列表 */}
+                  <div className="space-y-3">
                     {generatedImages.map((imageUrl, index) => (
                       <div 
                         key={index} 
                         className="bg-muted/30 rounded-lg p-2 border border-muted/50"
                       >
-                        <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center justify-between mb-2">
                           <Badge variant="secondary" className="text-[10px] h-5 bg-emerald-100 text-emerald-700">
                             详情图 {index + 1} / {generatedImages.length}
                           </Badge>
@@ -542,42 +715,42 @@ export default function DetailDesign() {
                           </span>
                         </div>
                         
-                        <div className="relative rounded overflow-hidden bg-white">
+                        <div className="relative rounded overflow-hidden bg-white shadow-sm">
                           <img
                             src={imageUrl}
                             alt={`详情图 ${index + 1}`}
-                            className="w-full object-contain cursor-pointer hover:opacity-95"
+                            className="w-full object-contain cursor-pointer hover:opacity-95 transition-opacity"
                             onClick={() => handlePreview(imageUrl)}
                           />
                           
                           {/* 操作按钮 */}
-                          <div className="absolute bottom-1.5 right-1.5 flex gap-1">
+                          <div className="absolute bottom-2 right-2 flex gap-1">
                             <Button
                               size="icon"
                               variant="secondary"
-                              className="h-6 w-6 bg-white/90 hover:bg-white shadow-sm"
+                              className="h-7 w-7 bg-white/90 hover:bg-white shadow-sm"
                               onClick={() => handlePreview(imageUrl)}
                             >
-                              <Eye className="h-3 w-3" />
+                              <Eye className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               size="icon"
                               variant="secondary"
-                              className="h-6 w-6 bg-white/90 hover:bg-white shadow-sm"
+                              className="h-7 w-7 bg-white/90 hover:bg-white shadow-sm"
                               onClick={() => handleCopyLink(imageUrl, index)}
                             >
                               {copyStatus[index] === 'success' ? (
                                 <span className="text-[10px] text-green-600 font-medium">✓</span>
                               ) : (
-                                <Copy className="h-3 w-3" />
+                                <Copy className="h-3.5 w-3.5" />
                               )}
                             </Button>
                             <Button
                               size="icon"
-                              className="h-6 w-6 bg-emerald-500 hover:bg-emerald-600 shadow-sm"
+                              className="h-7 w-7 bg-emerald-500 hover:bg-emerald-600 shadow-sm"
                               onClick={() => handleDownload(imageUrl, index)}
                             >
-                              <Download className="h-3 w-3" />
+                              <Download className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </div>
@@ -589,21 +762,31 @@ export default function DetailDesign() {
                     variant="outline"
                     size="sm"
                     onClick={handleGenerate}
-                    className="w-full h-7 text-[11px]"
+                    className="w-full h-8 text-xs"
                   >
                     <Sparkles className="mr-1 h-3 w-3" />
                     重新生成
                   </Button>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-[400px] text-center">
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-                    <Layout className="h-8 w-8 text-muted-foreground/40" />
+                <div className="flex flex-col items-center justify-center h-[500px] text-center">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mb-4 shadow-inner">
+                    <Layout className="h-10 w-10 text-emerald-500/60" />
                   </div>
-                  <p className="text-xs font-medium text-muted-foreground">开始设计详情图</p>
-                  <p className="text-[11px] text-muted-foreground/70 mt-1 max-w-[200px]">
-                    上传商品图，输入卖点，AI自动生成专业详情图
+                  <p className="text-sm font-medium text-muted-foreground">开始设计专业详情图</p>
+                  <p className="text-[11px] text-muted-foreground/70 mt-1 max-w-[240px]">
+                    选择行业分类和配色方案，AI将生成具有高级感的详情图
                   </p>
+                  
+                  {/* 设计提示 */}
+                  <div className="mt-6 p-3 bg-muted/50 rounded-lg max-w-[280px]">
+                    <p className="text-[10px] font-medium text-muted-foreground mb-2">设计师建议：</p>
+                    <ul className="text-[10px] text-muted-foreground space-y-1 text-left">
+                      <li>• 根据商品品类选择对应行业</li>
+                      <li>• 配色方案会自动匹配行业风格</li>
+                      <li>• 不同版式适合不同展示需求</li>
+                    </ul>
+                  </div>
                 </div>
               )}
             </div>
