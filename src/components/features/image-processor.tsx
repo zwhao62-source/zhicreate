@@ -26,6 +26,12 @@ export default function ImageProcessor() {
       desc: '智能美化皮肤，优化照片质感' 
     },
     { 
+      id: 'removebg', 
+      name: '一键去背景', 
+      icon: '🎨',
+      desc: '智能移除图片背景，保留主体' 
+    },
+    { 
       id: 'watermark', 
       name: '一键去水印', 
       icon: '🚫',

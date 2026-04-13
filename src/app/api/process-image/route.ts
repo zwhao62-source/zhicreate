@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
     const functionPrompts: Record<string, string> = {
       beautify: `Enhance and beautify this photo while maintaining natural appearance. Improve skin texture, adjust lighting and colors to create a more polished and professional look. Beauty level: ${intensity}%`,
       
+      removebg: `Remove the background from this image completely. Keep only the main subject (person, product, or object) with a clean transparent background. The subject should be perfectly isolated with clean edges.`,
+      
       watermark: `Remove all watermarks from this image seamlessly while preserving the underlying image quality and details. Clean up any text or logos that appear to be watermarks.`,
       
       enhance: `Enhance the image quality and resolution. Improve sharpness, clarity, and overall visual quality. Upscale and restore details for a more professional and high-definition look.`,
