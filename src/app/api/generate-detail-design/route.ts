@@ -10,6 +10,12 @@ export async function POST(request: NextRequest) {
     const template = formData.get('template') as string;
     const style = formData.get('style') as string;
     const quality = parseInt(formData.get('quality') as string || '80');
+    
+    // 新增专业设计参数
+    const category = formData.get('category') as string || 'fashion';
+    const colorScheme = formData.get('colorScheme') as string || 'elegant';
+    const layout = formData.get('layout') as string || 'center';
+    const font = formData.get('font') as string || 'modern';
 
     // 验证必填字段
     if (!image && !sellingPoints) {
@@ -31,31 +37,113 @@ export async function POST(request: NextRequest) {
       imageUrl = `data:${image.type};base64,${base64}`;
     }
 
+    // 配色方案详细配置
+    const colorSchemes: Record<string, { primary: string; secondary: string; accent: string; mood: string }> = {
+      elegant: { primary: '莫兰迪灰棕色', secondary: '米白色', accent: '深棕色', mood: '低调优雅的高级感' },
+      luxury: { primary: '香槟金色', secondary: '象牙白', accent: '深棕色', mood: '奢华典雅的贵族气质' },
+      fresh: { primary: '清新绿色', secondary: '淡米色', accent: '深绿色', mood: '自然清新的活力感' },
+      warm: { primary: '温暖焦糖色', secondary: '奶油白', accent: '深棕色', mood: '温馨甜蜜的食欲感' },
+      tech: { primary: '科技深蓝色', secondary: '银灰色', accent: '亮蓝色', mood: '专业信赖的科技感' },
+      romantic: { primary: '玫瑰粉色', secondary: '淡粉色', accent: '深玫瑰色', mood: '浪漫温柔的精致感' },
+      minimal: { primary: '纯黑色', secondary: '纯白色', accent: '中灰色', mood: '极简主义的纯粹感' },
+      vintage: { primary: '复古棕褐色', secondary: '米黄色', accent: '古铜色', mood: '复古文艺的怀旧感' },
+      // 新增配色方案
+      pastel: { primary: '马卡龙粉蓝', secondary: '淡紫色', accent: '薄荷绿', mood: '少女心的甜蜜感' },
+      earth: { primary: '大地棕绿色', secondary: '沙色', accent: '深橄榄色', mood: '自然原始的质朴感' },
+      ocean: { primary: '深海蓝色', secondary: '浅蓝灰色', accent: '珊瑚色', mood: '清凉舒爽的海洋感' },
+      forest: { primary: '森林深绿色', secondary: '苔藓绿', accent: '暖棕色', mood: '原始森林的生机感' },
+      sunset: { primary: '日落橙红色', secondary: '淡紫色', accent: '金黄色', mood: '温暖浪漫的黄昏感' },
+      neon: { primary: '霓虹紫粉色', secondary: '深紫色', accent: '荧光绿', mood: '赛博朋克的潮流感' },
+      nordic: { primary: '北欧灰白色', secondary: '浅木色', accent: '脏粉色', mood: '简约清冷的北欧感' },
+      chinese: { primary: '中国红色', secondary: '金色', accent: '墨黑色', mood: '喜庆大气的中国风' },
+    };
+
+    // 版式布局描述
+    const layouts: Record<string, string> = {
+      center: '居中对称构图，产品居中展示，大气稳重',
+      left: '左对齐现代布局，信息层次分明，现代简约',
+      magazine: '杂志拼贴风格，创意错落排版，时尚前卫',
+      split: '左右分栏设计，左图右文或上图下文，信息清晰',
+      overlap: '图文叠加层次，前景产品与背景交融，立体丰富'
+    };
+
+    // 字体风格描述
+    const fonts: Record<string, string> = {
+      modern: '现代无衬线字体，简洁有力，几何感强',
+      elegant: '优雅衬线字体，曲线柔美，品质感强',
+      playful: '活泼手写字体，亲切友好，轻松自然',
+      bold: '粗壮黑体字，冲击力强，视觉震撼'
+    };
+
+    // 行业特性描述
+    const categoryStyles: Record<string, string> = {
+      fashion: '服装品类风格，注重搭配美感，展示时尚潮流',
+      beauty: '美妆护肤风格，突出产品功效，展现精致品质',
+      digital: '数码科技风格，强调产品性能，体现科技感',
+      food: '食品生鲜风格，激发食欲诱惑，展示新鲜美味',
+      home: '家居百货风格，营造温馨氛围，突出生活品质',
+      baby: '母婴儿童风格，传递安全温馨，体现亲和力',
+      sports: '运动户外风格，展现活力动感，体现健康能量',
+      jewelry: '珠宝配饰风格，彰显奢华尊贵，突出品质价值'
+    };
+
     // 根据模板类型构建提示词
     const templatePrompts: Record<string, string> = {
-      showcase: `Professional e-commerce product showcase image. Display the product prominently with clean, minimalist composition. High quality, professional lighting, sharp focus on product details. E-commerce detail page design, ${width}x${height}px resolution.`,
-      
-      highlight: `E-commerce detail page highlighting product selling points. Use visual elements like arrows, badges, icons, or highlighted text boxes to emphasize key features. Modern design, professional layout, engaging visual hierarchy. ${width}x${height}px, high quality.`,
-      
-      scene: `E-commerce product lifestyle scene image. Show the product in real-life usage context to help customers imagine using it. Natural lighting, realistic environment, relatable scenario. Professional e-commerce photography style. ${width}x${height}px.`,
-      
-      feature: `Professional e-commerce product specifications and features display. Clean layout showing product parameters, technical details, and features in an organized, readable format. Infographic style, modern design, clear typography. ${width}x${height}px resolution.`,
-      
-      quality: `E-commerce quality assurance and certification display. Highlight quality badges, certification marks, and trust indicators. Premium design, trustworthy appearance, professional layout. High quality, detailed. ${width}x${height}px.`,
-      
-      promotion: `E-commerce promotional marketing image. Eye-catching design with promotional elements, discount badges, and call-to-action. Vibrant colors, energetic composition, marketing-focused layout. Professional commercial design. ${width}x${height}px.`
+      showcase: '专业电商产品展示图。产品占据视觉中心，背景简洁高级。',
+      highlight: '电商详情页卖点展示。使用视觉元素突出关键特性，现代设计。',
+      scene: '电商产品使用场景图。产品融入真实生活场景，引发共鸣。',
+      feature: '产品参数特性展示图。清晰展示产品规格参数，信息图表风格。',
+      quality: '品质保证认证展示。突出质量认证和信任标识。',
+      promotion: '促销营销推广图。醒目的促销元素，吸引眼球的视觉设计。'
     };
 
     // 根据风格调整提示词
     const stylePrompts: Record<string, string> = {
-      minimalist: 'Minimalist design, clean and simple, lots of white space, focus on essential elements, modern and elegant.',
-      premium: 'Premium luxury style, rich textures, gold or silver accents, sophisticated color palette, high-end feel, luxurious and exclusive.',
-      vibrant: 'Vibrant and energetic style, bold colors, dynamic composition, youthful and trendy, eye-catching and exciting.',
-      professional: 'Professional corporate style, neutral colors, clean layout, trustworthy and reliable, business-appropriate, serious and authoritative.'
+      minimalist: '极简设计风格，大量留白，聚焦核心元素，现代优雅。',
+      premium: '高端奢华风格，精致质感，金色银色点缀，高级感。',
+      vibrant: '活力四射风格，鲜艳色彩，动态构图，年轻时尚。',
+      professional: '专业商务风格，中性色调，干净布局，可靠权威。'
     };
 
-    const basePrompt = templatePrompts[template] || templatePrompts.showcase;
-    const stylePrompt = stylePrompts[style] || stylePrompts.minimalist;
+    const currentColor = colorSchemes[colorScheme] || colorSchemes.elegant;
+    const currentLayout = layouts[layout] || layouts.center;
+    const currentFont = fonts[font] || fonts.modern;
+    const currentCategory = categoryStyles[category] || categoryStyles.fashion;
+
+    // 构建完整提示词
+    let fullPrompt = `Create a professional e-commerce product detail page design for ${category} category. `;
+    
+    // 添加配色要求
+    fullPrompt += `Color scheme: Primary color ${currentColor.primary}, Secondary ${currentColor.secondary}, Accent ${currentColor.accent}. ${currentColor.mood}. `;
+    
+    // 添加版式要求
+    fullPrompt += `Layout style: ${currentLayout}. `;
+    
+    // 添加字体要求
+    fullPrompt += `Typography: ${currentFont}. Use clean, professional text without size labels. `;
+    
+    // 添加模板要求
+    fullPrompt += templatePrompts[template] || templatePrompts.showcase + ' ';
+    
+    // 添加风格要求
+    fullPrompt += stylePrompts[style] || stylePrompts.minimalist + ' ';
+    
+    // 行业特性
+    fullPrompt += currentCategory + '. ';
+    
+    // 关键：不要添加尺寸标注文字
+    fullPrompt += `IMPORTANT: Do NOT add any text showing dimensions, size labels, or resolution text (like "750x800px" or any size numbers) on the image. The design should be clean without size annotations. `;
+    
+    // 添加质量要求
+    if (quality >= 90) {
+      fullPrompt += 'Ultra high quality, photorealistic, 4K resolution, perfect details, studio quality.';
+    } else if (quality >= 80) {
+      fullPrompt += 'High quality, professional photography, excellent details.';
+    } else {
+      fullPrompt += 'Good quality, clear and sharp.';
+    }
+
+    fullPrompt += ` Clean e-commerce design, optimized for online shopping experience, no watermarks, no size labels.`;
 
     // 解析卖点，按行分割并提取有效卖点
     let parsedPoints: string[] = [];
@@ -65,14 +153,13 @@ export async function POST(request: NextRequest) {
       // 提取卖点内容（去除数字编号和点号）
       parsedPoints = lines
         .map(line => {
-          // 匹配开头的数字编号（如 "1. "、"1、"等）
           const match = line.match(/^\d+[\.\、]\s*(.+)/);
           if (match) {
             return match[1].trim();
           }
           return line;
         })
-        .filter(point => point.length > 2); // 过滤太短的内容
+        .filter(point => point.length > 2);
     }
 
     // 将卖点分组，每组最多3个卖点
@@ -81,7 +168,6 @@ export async function POST(request: NextRequest) {
       pointGroups.push(parsedPoints.slice(i, i + 3));
     }
 
-    // 如果没有卖点，生成一张空白的详情图
     if (pointGroups.length === 0) {
       pointGroups.push([]);
     }
@@ -94,32 +180,17 @@ export async function POST(request: NextRequest) {
     // 为每组卖点生成一张详情图
     for (let groupIndex = 0; groupIndex < pointGroups.length; groupIndex++) {
       const group = pointGroups[groupIndex];
-
-      // 构建当前组的卖点文本
       const groupPoints = group.join('; ');
       
-      // 构建完整提示词
-      let fullPrompt = `Create a professional e-commerce product detail page design. ${basePrompt} ${stylePrompt}`;
-      
-      // 添加卖点信息（最多3个）
+      // 如果有卖点，添加到提示词
+      let finalPrompt = fullPrompt;
       if (groupPoints) {
-        fullPrompt += ` Product features to highlight (maximum 3 points): ${groupPoints}. `;
+        finalPrompt += ` Product features to highlight: ${groupPoints}.`;
       }
-      
-      // 添加质量提示
-      if (quality >= 90) {
-        fullPrompt += 'Ultra high quality, photorealistic, 4K resolution, perfect details.';
-      } else if (quality >= 80) {
-        fullPrompt += 'High quality, professional photography, excellent details.';
-      } else {
-        fullPrompt += 'Good quality, clear and sharp.';
-      }
-
-      fullPrompt += ` E-commerce standard, optimized for online shopping experience.`;
 
       // 使用图生图或文生图
       const response = await client.generate({
-        prompt: fullPrompt,
+        prompt: finalPrompt,
         image: imageUrl,
         size: '2K',
         watermark: false,
@@ -135,20 +206,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 返回所有生成的详情图
     if (generatedImages.length > 0) {
       return NextResponse.json({
         success: true,
         images: generatedImages,
         totalImages: generatedImages.length,
         pointGroups: pointGroups.length,
-        pointsPerGroup: Math.min(3, parsedPoints.length)
+        pointsPerGroup: Math.min(3, parsedPoints.length),
+        designConfig: {
+          category,
+          colorScheme,
+          layout,
+          font,
+          style
+        }
       });
     } else {
       return NextResponse.json(
         { 
           success: false, 
-          error: '详情图生成失败，请稍后重试' 
+          error: '生成失败，请稍后重试',
+          pointGroups: pointGroups.length
         },
         { status: 500 }
       );
@@ -157,7 +235,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('生成详情图失败:', error);
     return NextResponse.json(
-      { success: false, error: '处理请求失败，请稍后重试' },
+      { error: '生成详情图时发生错误' },
       { status: 500 }
     );
   }

@@ -9,11 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Loader2, Sparkles, Upload, Download, Layout, Image as ImageIcon, 
-  Copy, Eye, Settings2, Grid3X3, Palette, Ruler, Type, Layers,
-  Palette as PaletteIcon, AlignLeft, Sparkles as SparklesIcon
+  Copy, Eye, Settings2, Grid3X3, Palette as PaletteIcon, Ruler, Type,
+  Layers, ChevronLeft, ChevronRight, Sparkles as SparklesIcon, Check
 } from 'lucide-react';
 import AdBanner from '@/components/ui/ad-banner';
 
@@ -42,9 +42,9 @@ export default function DetailDesign() {
   const [selectedColorScheme, setSelectedColorScheme] = useState('elegant');
   const [selectedLayout, setSelectedLayout] = useState('center');
   const [selectedFont, setSelectedFont] = useState('modern');
+  const [colorPage, setColorPage] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 尺寸选项
   const sizes = [
     { id: '750x500', name: '750×500', desc: '移动端标准' },
     { id: '750x800', name: '750×800', desc: '移动端中长' },
@@ -54,48 +54,68 @@ export default function DetailDesign() {
     { id: '800x1200', name: '800×1200', desc: '移动端竖版' }
   ];
 
-  // 行业分类 - 资深设计师按行业定制
+  // 行业分类
   const categories = [
-    { id: 'fashion', name: '服装鞋包', icon: '👗', desc: '简约高级' },
-    { id: 'beauty', name: '美妆护肤', icon: '💄', desc: '精致温柔' },
-    { id: 'digital', name: '数码科技', icon: '📱', desc: '科技感' },
-    { id: 'food', name: '食品生鲜', icon: '🍽️', desc: '食欲感' },
-    { id: 'home', name: '家居百货', icon: '🏠', desc: '温馨感' },
-    { id: 'baby', name: '母婴儿童', icon: '🧸', desc: '安全感' },
-    { id: 'sports', name: '运动户外', icon: '⚡', desc: '活力感' },
-    { id: 'jewelry', name: '珠宝配饰', icon: '💎', desc: '奢华感' }
+    { id: 'fashion', name: '服装鞋包', icon: '👗' },
+    { id: 'beauty', name: '美妆护肤', icon: '💄' },
+    { id: 'digital', name: '数码科技', icon: '📱' },
+    { id: 'food', name: '食品生鲜', icon: '🍽️' },
+    { id: 'home', name: '家居百货', icon: '🏠' },
+    { id: 'baby', name: '母婴儿童', icon: '🧸' },
+    { id: 'sports', name: '运动户外', icon: '⚡' },
+    { id: 'jewelry', name: '珠宝配饰', icon: '💎' }
   ];
 
-  // 专业配色方案 - 每个行业有专属配色
+  // 丰富的配色方案 - 分成多页
   const colorSchemes = [
+    // 第1页：经典风格
     { id: 'elegant', name: '优雅莫兰迪', colors: ['#8B7355', '#D4C4B0', '#E8DFD5'], desc: '高级百搭' },
     { id: 'luxury', name: '奢华香槟', colors: ['#C9A86C', '#F5E6D3', '#2C1810'], desc: '高端质感' },
-    { id: 'fresh', name: '清新自然', colors: ['#7BA05B', '#F5F0E6', '#4A6741'], desc: '清新活力' },
-    { id: 'warm', name: '温暖焦糖', colors: ['#D4865C', '#FDF6F0', '#8B5A3C'], desc: '温馨食欲' },
-    { id: 'tech', name: '科技深蓝', colors: ['#2C3E50', '#ECF0F1', '#3498DB'], desc: '专业信赖' },
-    { id: 'romantic', name: '浪漫玫瑰', colors: ['#D4A5A5', '#FDF2F2', '#8B6B6B'], desc: '温柔精致' },
     { id: 'minimal', name: '极简黑白', colors: ['#333333', '#FFFFFF', '#666666'], desc: '极简主义' },
-    { id: 'vintage', name: '复古美式', colors: ['#8B4513', '#F5DEB3', '#CD853F'], desc: '复古文艺' }
+    { id: 'vintage', name: '复古美式', colors: ['#8B4513', '#F5DEB3', '#CD853F'], desc: '复古文艺' },
+    // 第2页：自然风格
+    { id: 'fresh', name: '清新自然', colors: ['#7BA05B', '#F5F0E6', '#4A6741'], desc: '清新活力' },
+    { id: 'forest', name: '森林深绿', colors: ['#2D5016', '#8FBC8F', '#556B2F'], desc: '原始森林' },
+    { id: 'earth', name: '大地色系', colors: ['#8B7355', '#D2B48C', '#6B4423'], desc: '质朴自然' },
+    { id: 'ocean', name: '海洋蓝色', colors: ['#1E4D6B', '#87CEEB', '#4682B4'], desc: '清凉舒爽' },
+    // 第3页：温暖风格
+    { id: 'warm', name: '温暖焦糖', colors: ['#D4865C', '#FDF6F0', '#8B5A3C'], desc: '温馨食欲' },
+    { id: 'sunset', name: '日落橙红', colors: ['#FF6B35', '#C9B1FF', '#FFD93D'], desc: '浪漫黄昏' },
+    { id: 'romantic', name: '浪漫玫瑰', colors: ['#D4A5A5', '#FDF2F2', '#8B6B6B'], desc: '温柔精致' },
+    { id: 'pastel', name: '马卡龙', colors: ['#FFB6C1', '#E6E6FA', '#98FB98'], desc: '少女甜蜜' },
+    // 第4页：科技风格
+    { id: 'tech', name: '科技深蓝', colors: ['#2C3E50', '#ECF0F1', '#3498DB'], desc: '专业信赖' },
+    { id: 'neon', name: '霓虹潮流', colors: ['#FF00FF', '#00FFFF', '#1E90FF'], desc: '赛博朋克' },
+    { id: 'nordic', name: '北欧冷淡', colors: ['#D3D3D3', '#F5F5DC', '#BC8F8F'], desc: '简约清冷' },
+    { id: 'cyber', name: '赛博深紫', colors: ['#2E1A47', '#9B59B6', '#8E44AD'], desc: '未来科技' },
+    // 第5页：东方风格
+    { id: 'chinese', name: '中国红金', colors: ['#C41E3A', '#FFD700', '#1A1A1A'], desc: '喜庆大气' },
+    { id: 'japanese', name: '日式和风', colors: ['#FFFAFA', '#2F4F4F', '#BC002D'], desc: '素雅禅意' },
+    { id: 'korean', name: '韩式奶油', colors: ['#FFF5E1', '#FFE4C4', '#DEB887'], desc: '温柔清新' },
+    { id: 'tropical', name: '热带风情', colors: ['#FF7F50', '#20B2AA', '#FFD700'], desc: '热情活力' },
   ];
 
-  // 专业版式布局
+  const COLORS_PER_PAGE = 8;
+  const totalPages = Math.ceil(colorSchemes.length / COLORS_PER_PAGE);
+  const currentColors = colorSchemes.slice(colorPage * COLORS_PER_PAGE, (colorPage + 1) * COLORS_PER_PAGE);
+
+  // 版式布局
   const layouts = [
-    { id: 'center', name: '居中对称', desc: '大气稳重', icon: '⊕' },
-    { id: 'left', name: '左对齐', desc: '现代简约', icon: '≡' },
-    { id: 'magazine', name: '杂志风', desc: '创意时尚', icon: '▦' },
-    { id: 'split', name: '左右分栏', desc: '信息清晰', icon: '▤' },
-    { id: 'overlap', name: '图文叠加', desc: '层次丰富', icon: '◫' }
+    { id: 'center', name: '居中对称', desc: '大气稳重' },
+    { id: 'left', name: '左对齐', desc: '现代简约' },
+    { id: 'magazine', name: '杂志风', desc: '创意时尚' },
+    { id: 'split', name: '左右分栏', desc: '信息清晰' },
+    { id: 'overlap', name: '图文叠加', desc: '层次丰富' }
   ];
 
   // 字体风格
   const fonts = [
-    { id: 'modern', name: '现代无衬线', desc: '简洁有力' },
-    { id: 'elegant', name: '优雅衬线', desc: '高级品质' },
-    { id: 'playful', name: '活泼手写', desc: '亲切友好' },
-    { id: 'bold', name: '粗壮有力', desc: '冲击力强' }
+    { id: 'modern', name: '现代无衬线', desc: '简洁有力，几何感强' },
+    { id: 'elegant', name: '优雅衬线', desc: '曲线柔美，品质感强' },
+    { id: 'playful', name: '活泼手写', desc: '亲切友好，轻松自然' },
+    { id: 'bold', name: '粗壮黑体', desc: '冲击力强，视觉震撼' }
   ];
 
-  // 设计模板
   const templates = [
     { id: 'showcase', name: '产品展示', icon: '📦' },
     { id: 'highlight', name: '卖点突出', icon: '✨' },
@@ -204,7 +224,7 @@ export default function DetailDesign() {
       formData.append('template', selectedTemplate);
       formData.append('style', selectedStyle);
       formData.append('quality', quality[0].toString());
-      // 新增专业设计参数
+      // 专业设计参数
       formData.append('category', selectedCategory);
       formData.append('colorScheme', selectedColorScheme);
       formData.append('layout', selectedLayout);
@@ -291,7 +311,6 @@ export default function DetailDesign() {
 
   return (
     <div className="space-y-4">
-      {/* 广告横幅 */}
       {showAd && (
         <AdBanner
           duration={45}
@@ -304,7 +323,6 @@ export default function DetailDesign() {
         />
       )}
 
-      {/* 头部标题 */}
       <div className="flex items-center gap-2">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
           <Layout className="h-4 w-4 text-white" />
@@ -316,7 +334,7 @@ export default function DetailDesign() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
-        {/* 左侧输入区域 */}
+        {/* 左侧配置区 */}
         <Card className="xl:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-1.5">
@@ -326,7 +344,7 @@ export default function DetailDesign() {
             <CardDescription className="text-xs">多维度精细化设计，打造高级感详情图</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* 商品图片上传 */}
+            {/* 商品图片 */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">商品图片</Label>
               <div
@@ -402,7 +420,7 @@ export default function DetailDesign() {
               />
             </div>
 
-            {/* 行业分类 - 核心设计参数 */}
+            {/* 行业分类 */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <Layers className="h-3 w-3" />
@@ -414,21 +432,7 @@ export default function DetailDesign() {
                     key={cat.id}
                     variant={selectedCategory === cat.id ? 'default' : 'outline'}
                     className={`h-9 flex flex-col gap-0.5 py-1 ${selectedCategory === cat.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
-                    onClick={() => {
-                      setSelectedCategory(cat.id);
-                      // 自动匹配推荐配色
-                      const categoryColorMap: Record<string, string> = {
-                        fashion: 'elegant',
-                        beauty: 'romantic',
-                        digital: 'tech',
-                        food: 'warm',
-                        home: 'fresh',
-                        baby: 'warm',
-                        sports: 'fresh',
-                        jewelry: 'luxury'
-                      };
-                      setSelectedColorScheme(categoryColorMap[cat.id] || 'elegant');
-                    }}
+                    onClick={() => setSelectedCategory(cat.id)}
                   >
                     <span className="text-sm">{cat.icon}</span>
                     <span className="text-[9px] leading-none">{cat.name}</span>
@@ -437,61 +441,93 @@ export default function DetailDesign() {
               </div>
             </div>
 
-            {/* 配色方案 - 设计师核心 */}
+            {/* 配色方案 - 翻页式 */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <PaletteIcon className="h-3 w-3" />
                 配色方案
+                <Badge variant="outline" className="ml-auto text-[10px] h-4 px-1">
+                  {colorPage + 1}/{totalPages}
+                </Badge>
               </Label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {colorSchemes.map((scheme) => (
-                  <Button
-                    key={scheme.id}
-                    variant={selectedColorScheme === scheme.id ? 'default' : 'outline'}
-                    className={`h-auto py-1.5 px-2 ${selectedColorScheme === scheme.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
-                    onClick={() => setSelectedColorScheme(scheme.id)}
-                  >
-                    <div className="flex items-center gap-1 w-full">
-                      <div className="flex gap-0.5">
-                        {scheme.colors.slice(0, 3).map((color, i) => (
-                          <div
-                            key={i}
-                            className="w-4 h-4 rounded-sm border border-muted"
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
+              
+              <div className="border rounded-lg p-2 bg-muted/20">
+                <div className="grid grid-cols-2 gap-1.5">
+                  {currentColors.map((scheme) => (
+                    <Button
+                      key={scheme.id}
+                      variant={selectedColorScheme === scheme.id ? 'default' : 'outline'}
+                      className={`h-auto py-1.5 px-2 ${selectedColorScheme === scheme.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
+                      onClick={() => setSelectedColorScheme(scheme.id)}
+                    >
+                      <div className="flex items-center gap-1.5 w-full">
+                        <div className="flex gap-0.5 shrink-0">
+                          {scheme.colors.slice(0, 3).map((color, i) => (
+                            <div
+                              key={i}
+                              className="w-3.5 h-3.5 rounded-sm border border-muted/50"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                        <div className="text-left flex-1 min-w-0">
+                          <div className="text-[10px] font-medium leading-tight truncate">{scheme.name}</div>
+                          <div className="text-[8px] opacity-70 truncate">{scheme.desc}</div>
+                        </div>
+                        {selectedColorScheme === scheme.id && (
+                          <Check className="h-3 w-3 shrink-0 text-emerald-600" />
+                        )}
                       </div>
-                      <div className="text-left flex-1">
-                        <div className="text-[10px] font-medium leading-tight">{scheme.name}</div>
-                        <div className="text-[8px] opacity-70">{scheme.desc}</div>
-                      </div>
-                    </div>
-                  </Button>
-                ))}
+                    </Button>
+                  ))}
+                </div>
+                
+                {/* 翻页按钮 */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-4 mt-2 pt-2 border-t border-muted/50">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-[10px] px-2"
+                      onClick={() => setColorPage(p => Math.max(0, p - 1))}
+                      disabled={colorPage === 0}
+                    >
+                      <ChevronLeft className="h-3 w-3 mr-0.5" />
+                      上一页
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground">
+                      {colorPage + 1} / {totalPages}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-[10px] px-2"
+                      onClick={() => setColorPage(p => Math.min(totalPages - 1, p + 1))}
+                      disabled={colorPage === totalPages - 1}
+                    >
+                      下一页
+                      <ChevronRight className="h-3 w-3 ml-0.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* 版式布局 */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <AlignLeft className="h-3 w-3" />
-                版式布局
-              </Label>
+              <Label className="text-xs font-medium text-muted-foreground">版式布局</Label>
               <div className="grid grid-cols-5 gap-1">
                 {layouts.map((layout) => (
                   <Button
                     key={layout.id}
                     variant={selectedLayout === layout.id ? 'default' : 'outline'}
-                    className={`h-8 ${selectedLayout === layout.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
+                    className={`h-8 text-[10px] ${selectedLayout === layout.id ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500' : ''}`}
                     onClick={() => setSelectedLayout(layout.id)}
                   >
-                    <span className="text-xs">{layout.icon}</span>
+                    {layout.name}
                   </Button>
                 ))}
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                {layouts.find(l => l.id === selectedLayout)?.name} · {layouts.find(l => l.id === selectedLayout)?.desc}
-              </p>
             </div>
 
             {/* 字体风格 */}
@@ -508,7 +544,7 @@ export default function DetailDesign() {
                   {fonts.map((font) => (
                     <SelectItem key={font.id} value={font.id} className="text-xs">
                       <div>
-                        <div>{font.name}</div>
+                        <div className="font-medium">{font.name}</div>
                         <div className="text-[10px] text-muted-foreground">{font.desc}</div>
                       </div>
                     </SelectItem>
@@ -576,22 +612,6 @@ export default function DetailDesign() {
               </Tabs>
             </div>
 
-            {/* 生成质量 */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-muted-foreground">生成质量</Label>
-                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{quality[0]}%</Badge>
-              </div>
-              <Slider
-                value={quality}
-                onValueChange={setQuality}
-                min={60}
-                max={100}
-                step={5}
-                className="w-full [&_[role=slider]]:bg-emerald-500"
-              />
-            </div>
-
             {/* 设计模板 */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">设计模板</Label>
@@ -608,6 +628,22 @@ export default function DetailDesign() {
                   </Button>
                 ))}
               </div>
+            </div>
+
+            {/* 生成质量 */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium text-muted-foreground">生成质量</Label>
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{quality[0]}%</Badge>
+              </div>
+              <Slider
+                value={quality}
+                onValueChange={setQuality}
+                min={60}
+                max={100}
+                step={5}
+                className="w-full [&_[role=slider]]:bg-emerald-500"
+              />
             </div>
 
             {/* 生成按钮 */}
@@ -631,7 +667,7 @@ export default function DetailDesign() {
           </CardContent>
         </Card>
 
-        {/* 右侧输出区域 */}
+        {/* 右侧结果区 */}
         <Card className="xl:col-span-3">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -641,7 +677,6 @@ export default function DetailDesign() {
               </div>
               {generatedImages.length > 0 && (
                 <div className="flex items-center gap-2">
-                  {/* 当前配色预览 */}
                   <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted/50">
                     {getCurrentColorScheme().colors.slice(0, 3).map((color, i) => (
                       <div
@@ -672,7 +707,9 @@ export default function DetailDesign() {
                 <div className="flex flex-col items-center justify-center h-[500px]">
                   <div className="w-16 h-16 rounded-full border-[3px] border-emerald-200 border-t-emerald-500 animate-spin" />
                   <p className="mt-4 text-sm font-medium text-emerald-600">AI专业设计师创作中...</p>
-                  <p className="text-xs text-muted-foreground mt-1">正在应用配色方案：{getCurrentColorScheme().name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {getCurrentColorScheme().name} · {layouts.find(l => l.id === selectedLayout)?.name} · {fonts.find(f => f.id === selectedFont)?.name}
+                  </p>
                   <p className="text-[11px] text-muted-foreground">预计需要 30-60 秒</p>
                 </div>
               ) : generatedImages.length > 0 ? (
@@ -723,7 +760,6 @@ export default function DetailDesign() {
                             onClick={() => handlePreview(imageUrl)}
                           />
                           
-                          {/* 操作按钮 */}
                           <div className="absolute bottom-2 right-2 flex gap-1">
                             <Button
                               size="icon"
@@ -778,13 +814,13 @@ export default function DetailDesign() {
                     选择行业分类和配色方案，AI将生成具有高级感的详情图
                   </p>
                   
-                  {/* 设计提示 */}
                   <div className="mt-6 p-3 bg-muted/50 rounded-lg max-w-[280px]">
                     <p className="text-[10px] font-medium text-muted-foreground mb-2">设计师建议：</p>
                     <ul className="text-[10px] text-muted-foreground space-y-1 text-left">
                       <li>• 根据商品品类选择对应行业</li>
                       <li>• 配色方案会自动匹配行业风格</li>
                       <li>• 不同版式适合不同展示需求</li>
+                      <li>• 生成的图片不包含尺寸标注</li>
                     </ul>
                   </div>
                 </div>
@@ -794,7 +830,7 @@ export default function DetailDesign() {
         </Card>
       </div>
 
-      {/* 大图预览模态框 */}
+      {/* 预览模态框 */}
       {previewImage && (
         <div 
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
