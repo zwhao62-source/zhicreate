@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,43 +18,43 @@ const features = [
     id: 'copywrite',
     label: 'AI文案生成',
     icon: '✍️',
-    description: '输入商品信息，自动生成种草文案、爆文改写'
+    description: '输入商品信息，自动生成种草文案'
   },
   {
     id: 'training',
     label: 'AI模特训练',
     icon: '👤',
-    description: '上传照片训练专属AI虚拟模特，降低拍摄成本'
+    description: '训练专属AI虚拟模特'
   },
   {
     id: 'image',
     label: 'AI商品图生成',
     icon: '🎨',
-    description: '提供商品上身图，生成专业模特展示图'
+    description: '生成专业模特展示图'
   },
   {
     id: 'detail',
-    label: 'AI电商详情图设计',
+    label: 'AI详情图设计',
     icon: '📐',
-    description: '生成符合电商内页尺寸的专业详情图'
+    description: '生成电商内页详情图'
   },
   {
     id: 'video',
     label: '图生视频',
     icon: '🎬',
-    description: '生成多角度、多场景的服装动态展示视频'
+    description: '生成服装动态展示视频'
   },
   {
     id: 'process',
     label: 'AI图片处理',
     icon: '✨',
-    description: '一键美图、去水印、高清修复等功能'
+    description: '美图/去水印/压缩/格式转换'
   },
   {
     id: 'swap',
-    label: '模特换脸与背景',
+    label: '模特换装与背景',
     icon: '🔄',
-    description: '轻松替换模特面部或背景'
+    description: '换脸/换装/换背景'
   }
 ];
 
@@ -67,23 +68,32 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
-                <span className="text-xl">🎯</span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-red-600">
+                <span className="text-xl font-bold text-white">智</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  AI电商营销平台
+                <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                  智创云电商设计
                 </h1>
-                <p className="text-xs text-muted-foreground">智能创作 · 详情图设计 · 高效营销</p>
+                <p className="text-xs text-muted-foreground">AI驱动 · 电商内容创作平台</p>
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                使用文档
-              </Button>
-              <Button size="sm" className="bg-gradient-to-r from-blue-500 to-purple-600">
-                立即开始
-              </Button>
+              <Link href="/pricing">
+                <Button variant="ghost" size="sm">
+                  会员定价
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button variant="outline" size="sm">
+                  登录
+                </Button>
+              </Link>
+              <Link href="/pricing">
+                <Button size="sm" className="bg-gradient-to-r from-orange-500 to-red-600">
+                  立即开始
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -107,7 +117,7 @@ export default function Home() {
                       activeFeature === feature.id
                         ? feature.id === 'detail'
                           ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 shadow-sm'
-                          : 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 shadow-sm'
+                          : 'bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950 shadow-sm'
                         : 'hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                     onClick={() => setActiveFeature(feature.id)}
@@ -142,8 +152,14 @@ export default function Home() {
       <footer className="border-t bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm mt-12">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-            <p>AI电商营销平台 - 助力商家轻松创作</p>
-            <p className="text-xs">支持多种电商平台：小红书、淘宝、天猫、京东、速卖通等 · 支持电商详情图设计</p>
+            <p>智创云电商设计 - 让电商内容创作更简单</p>
+            <p className="text-xs">
+              <Link href="/pricing" className="text-primary hover:underline">会员定价</Link>
+              {' · '}
+              <Link href="/login" className="text-primary hover:underline">登录</Link>
+              {' · '}
+              <Link href="/register" className="text-primary hover:underline">注册</Link>
+            </p>
           </div>
         </div>
       </footer>
