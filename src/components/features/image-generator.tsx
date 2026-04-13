@@ -5,7 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Grid3X3, Settings2 } from 'lucide-react';
 import { Loader2, Sparkles, Upload, Download, RefreshCw, Image as ImageIcon, Palette, Ruler, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AdBanner from '@/components/ui/ad-banner';
@@ -19,7 +22,17 @@ export default function ImageGenerator() {
   const [selectedStyle, setSelectedStyle] = useState('realistic');
   const [selectedSize, setSelectedSize] = useState('800x800');
   const [selectedScene, setSelectedScene] = useState('studio');
+  const [sizeMode, setSizeMode] = useState<'preset' | 'custom'>('preset');
+  const [customWidth, setCustomWidth] = useState('800');
+  const [customHeight, setCustomHeight] = useState('800');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const getFinalSize = () => {
+    if (sizeMode === 'custom') {
+      return `${customWidth}x${customHeight}`;
+    }
+    return selectedSize;
+  };
 
   const sizes = [
     { id: '800x800', name: '800×800', desc: '商品主图' },
@@ -178,7 +191,7 @@ export default function ImageGenerator() {
       formData.append('prompt', prompt || '专业模特展示商品');
       formData.append('style', selectedStyle);
       formData.append('scene', selectedScene);
-      formData.append('size', selectedSize);
+      formData.append('size', getFinalSize());
 
       const response = await fetch('/api/generate-image', {
         method: 'POST',
@@ -208,7 +221,7 @@ export default function ImageGenerator() {
   const handleDownload = (imageUrl: string, index: number) => {
     const link = document.createElement('a');
     link.href = imageUrl;
-    link.download = `product-image-${selectedSize}-${index + 1}.png`;
+    link.download = `product-image-${getFinalSize()}-${index + 1}.png`;
     link.click();
   };
 
@@ -328,20 +341,60 @@ export default function ImageGenerator() {
                 <Ruler className="h-3 w-3" />
                 主图尺寸
               </Label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {sizes.map((size) => (
-                  <Button
-                    key={size.id}
-                    variant={selectedSize === size.id ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedSize(size.id)}
-                    className={`flex flex-col gap-0.5 h-8 py-1 ${selectedSize === size.id ? 'bg-pink-500 hover:bg-pink-600 border-pink-500' : ''}`}
-                  >
-                    <span className="text-[11px] font-medium">{size.name}</span>
-                    <span className="text-[9px] opacity-70">{size.desc}</span>
-                  </Button>
-                ))}
-              </div>
+              <Tabs value={sizeMode} onValueChange={(v) => setSizeMode(v as 'preset' | 'custom')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 h-7">
+                  <TabsTrigger value="preset" className="text-[11px] gap-1">
+                    <Grid3X3 className="h-2.5 w-2.5" />
+                    预设
+                  </TabsTrigger>
+                  <TabsTrigger value="custom" className="text-[11px] gap-1">
+                    <Settings2 className="h-2.5 w-2.5" />
+                    自定义
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="preset" className="mt-2">
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {sizes.map((size) => (
+                      <Button
+                        key={size.id}
+                        variant={selectedSize === size.id ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setSelectedSize(size.id)}
+                        className={`flex flex-col gap-0.5 h-8 py-1 ${selectedSize === size.id ? 'bg-pink-500 hover:bg-pink-600 border-pink-500' : ''}`}
+                      >
+                        <span className="text-[11px] font-medium">{size.name}</span>
+                        <span className="text-[9px] opacity-70">{size.desc}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="custom" className="mt-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={customWidth}
+                      onChange={(e) => setCustomWidth(e.target.value)}
+                      min={100}
+                      max={2000}
+                      className="h-7 text-xs w-16"
+                      placeholder="宽"
+                    />
+                    <span className="text-muted-foreground text-xs">×</span>
+                    <Input
+                      type="number"
+                      value={customHeight}
+                      onChange={(e) => setCustomHeight(e.target.value)}
+                      min={100}
+                      max={2000}
+                      className="h-7 text-xs w-16"
+                      placeholder="高"
+                    />
+                    <span className="text-muted-foreground text-[10px]">px</span>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* 场景选择 - 下拉式 */}
