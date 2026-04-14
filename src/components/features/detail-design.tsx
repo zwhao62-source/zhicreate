@@ -132,7 +132,19 @@ export default function DetailDesign() {
   const [selectedStyle, setSelectedStyle] = useState('minimalist');
 
   // 字体层级预设
-  const typographyPresets = [
+  type SizeOption = 'large' | 'medium' | 'small';
+  type WeightOption = 'bold' | 'medium' | 'light';
+  type AlignOption = 'left' | 'center' | 'right';
+  
+  interface TypographyPreset {
+    id: string;
+    name: string;
+    headline: { size: SizeOption; weight: WeightOption; align: AlignOption };
+    subheadline: { size: SizeOption; weight: WeightOption; align: AlignOption };
+    body: { size: SizeOption; weight: WeightOption; align: AlignOption };
+  }
+  
+  const typographyPresets: TypographyPreset[] = [
     { 
       id: 'default', 
       name: '默认优雅', 
@@ -373,22 +385,24 @@ export default function DetailDesign() {
   };
 
   // 字体层级组件
+  type TypographyLevelProps = {
+    label: string;
+    size: SizeOption;
+    setSize: (v: SizeOption) => void;
+    weight: WeightOption;
+    setWeight: (v: WeightOption) => void;
+    align: AlignOption;
+    setAlign: (v: AlignOption) => void;
+    icon: string;
+  };
+  
   const TypographyLevel = ({ 
     label, 
     size, setSize, 
     weight, setWeight, 
     align, setAlign,
     icon
-  }: {
-    label: string;
-    size: string;
-    setSize: (v: string) => void;
-    weight: string;
-    setWeight: (v: string) => void;
-    align: string;
-    setAlign: (v: string) => void;
-    icon: string;
-  }) => (
+  }: TypographyLevelProps) => (
     <div className="space-y-1.5 p-2 rounded bg-muted/30">
       <div className="flex items-center gap-1.5">
         <span className="text-sm">{icon}</span>
@@ -399,7 +413,7 @@ export default function DetailDesign() {
         <div className="space-y-0.5">
           <span className="text-[9px] text-muted-foreground">字号</span>
           <div className="flex gap-0.5">
-            {['small', 'medium', 'large'].map(s => (
+            {(['small', 'medium', 'large'] as SizeOption[]).map(s => (
               <Button
                 key={s}
                 variant={size === s ? 'default' : 'outline'}
@@ -416,7 +430,7 @@ export default function DetailDesign() {
         <div className="space-y-0.5">
           <span className="text-[9px] text-muted-foreground">字重</span>
           <div className="flex gap-0.5">
-            {[{ v: 'light', l: '细' }, { v: 'medium', l: '中' }, { v: 'bold', l: '粗' }].map(w => (
+            {([{ v: 'light' as WeightOption, l: '细' }, { v: 'medium' as WeightOption, l: '中' }, { v: 'bold' as WeightOption, l: '粗' }]).map(w => (
               <Button
                 key={w.v}
                 variant={weight === w.v ? 'default' : 'outline'}
@@ -433,7 +447,7 @@ export default function DetailDesign() {
         <div className="space-y-0.5">
           <span className="text-[9px] text-muted-foreground">对齐</span>
           <div className="flex gap-0.5">
-            {[{ v: 'left', i: AlignLeft }, { v: 'center', i: AlignCenter }, { v: 'right', i: AlignRight }].map(a => (
+            {([{ v: 'left' as AlignOption, i: AlignLeft }, { v: 'center' as AlignOption, i: AlignCenter }, { v: 'right' as AlignOption, i: AlignRight }]).map(a => (
               <Button
                 key={a.v}
                 variant={align === a.v ? 'default' : 'outline'}
