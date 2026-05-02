@@ -16,7 +16,37 @@ interface VolcanoLLMResponse {
   };
 }
 
-// 火山引擎 API 调用
+// 方舟 API Key 方式调用（推荐）
+async function callArkLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
+  const apiKey = process.env.VOLC_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('未配置火山方舟 API 密钥 (VOLC_API_KEY)');
+  }
+
+  const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'doubao-seed-1-6-lite-251015',
+      messages: messages,
+      temperature: 0.3
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API 调用失败: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json() as VolcanoLLMResponse;
+  return data.choices[0]?.message?.content || '';
+}
+
+// 火山引擎 AccessKey/SecretKey 方式调用（旧方式）
 async function callVolcanoLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
   const accessKey = process.env.VOLC_ACCESSKEY;
   const secretKey = process.env.VOLC_SECRETKEY;
@@ -32,12 +62,10 @@ async function callVolcanoLLM(messages: Array<{ role: string; content: string }>
   const action = 'ChatCompletions';
   const algorithm = 'HMAC-SHA256';
 
-  // 生成时间戳和日期
   const now = new Date();
   const timestamp = Math.floor(now.getTime() / 1000);
   const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
 
-  // 构建请求体
   const requestBody = {
     model: 'doubao-seed-1-6-lite-251015',
     messages: messages,
@@ -45,7 +73,6 @@ async function callVolcanoLLM(messages: Array<{ role: string; content: string }>
     stream: false
   };
 
-  // 签名计算
   const signedHeaders = 'content-type;host;x-date';
   const contentType = 'application/json';
 
@@ -80,7 +107,6 @@ async function callVolcanoLLM(messages: Array<{ role: string; content: string }>
 
   const authHeader = `${algorithm} Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
-  // 发起请求
   const response = await fetch(`https://${host}/${version}/${action}`, {
     method: 'POST',
     headers: {
@@ -99,6 +125,16 @@ async function callVolcanoLLM(messages: Array<{ role: string; content: string }>
 
   const data = await response.json() as VolcanoLLMResponse;
   return data.choices[0]?.message?.content || '';
+}
+
+// 统一调用入口（优先使用方舟 API Key）
+async function callLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
+  // 优先使用方舟 API Key
+  if (process.env.VOLC_API_KEY) {
+    return callArkLLM(messages);
+  }
+  // 降级使用 AccessKey/SecretKey
+  return callVolcanoLLM(messages);
 }
 
 export async function POST(request: NextRequest) {
@@ -129,140 +165,88 @@ export async function POST(request: NextRequest) {
     });
 
     if (!fetchResponse.ok) {
-      return NextResponse.json({ 
-        error: '无法获取页面内容，请检查链接是否有效' 
-      }, { status: 400 });
+      return NextResponse.json({ error: '获取商品信息失败，请检查链接是否正确' }, { status: 400 });
     }
 
-    const htmlContent = await fetchResponse.text();
-    
-    // 提取页面标题
-    const titleMatch = htmlContent.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const pageTitle = titleMatch ? titleMatch[1].trim() : '';
-    
-    // 提取meta描述
-    const descMatch = htmlContent.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
-    const metaDesc = descMatch ? descMatch[1].trim() : '';
-    
-    // 提取商品关键词
-    const keywordsMatch = htmlContent.match(/<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']+)["']/i);
-    const keywords = keywordsMatch ? keywordsMatch[1].trim() : '';
-    
-    // 尝试提取商品价格
-    const pricePatterns = [
-      /["']price["']\s*:\s*["']?(\d+\.?\d*)/i,
-      /price["']?\s*[:=]\s*["']?(\d+\.?\d*)/i,
-      /¥\s*(\d+\.?\d*)/,
-      /\$\s*(\d+\.?\d*)/,
-    ];
-    let price = null;
-    for (const pattern of pricePatterns) {
-      const match = htmlContent.match(pattern);
-      if (match) {
-        price = match[1];
-        break;
+    const html = await fetchResponse.text();
+
+    // 提取商品信息
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/i) ||
+                       html.match(/"title"\s*:\s*"([^"]+)"/i) ||
+                       html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+
+    const title = titleMatch ? titleMatch[1].trim().substring(0, 200) : '未知商品';
+
+    // 提取描述
+    const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
+                     html.match(/"description"\s*:\s*"([^"]+)"/i);
+    const description = descMatch ? descMatch[1].trim().substring(0, 500) : '';
+
+    // 调用大模型分析商品信息
+    let productInfo = {
+      title: title,
+      description: description,
+      price: '',
+      category: '',
+      features: [] as string[],
+      analysis: ''
+    };
+
+    // 如果有 API 密钥，调用 LLM 分析
+    if (process.env.VOLC_API_KEY || process.env.VOLC_ACCESSKEY) {
+      try {
+        const analysisPrompt = `你是一个专业的电商商品分析师。请从以下商品信息中提取关键卖点和建议：
+
+商品标题：${title}
+商品描述：${description}
+
+请以JSON格式返回，包含：
+- category: 商品类别
+- price: 价格（如果能找到）
+- features: 3-5个核心卖点（每个不超过20字）
+- analysis: 一段50字左右的营销建议
+
+只返回JSON，不要其他内容。`;
+
+        const llmResponse = await callLLM([
+          { role: 'system', content: '你是一个专业的电商商品分析师，擅长提取商品卖点和营销建议。' },
+          { role: 'user', content: analysisPrompt }
+        ]);
+
+        // 尝试解析 LLM 返回的 JSON
+        try {
+          const jsonMatch = llmResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const analysis = JSON.parse(jsonMatch[0]);
+            productInfo = {
+              ...productInfo,
+              category: analysis.category || '',
+              features: analysis.features || [],
+              analysis: analysis.analysis || '',
+              price: analysis.price || ''
+            };
+          }
+        } catch {
+          // 解析失败，使用原始信息
+          productInfo.analysis = llmResponse.substring(0, 200);
+        }
+      } catch (llmError) {
+        console.error('LLM 调用失败:', llmError);
+        productInfo.analysis = '商品信息提取成功，请手动补充卖点';
       }
-    }
-    
-    // 提取品牌信息
-    const brandPatterns = [
-      /["']brand["']\s*:\s*["']([^"']+)["']/i,
-      /品牌["']?\s*[:=]\s*["']([^"']+)["']/i,
-    ];
-    let brand = null;
-    for (const pattern of brandPatterns) {
-      const match = htmlContent.match(pattern);
-      if (match) {
-        brand = match[1];
-        break;
-      }
-    }
-    
-    // 提取页面正文文本（简单去除HTML标签）
-    const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-    let textContent = '';
-    if (bodyMatch) {
-      textContent = bodyMatch[1]
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 8000);
-    }
-
-    // 准备提取提示
-    const extractPrompt = `你是一个专业的电商商品信息提取助手。请从以下网页内容中提取商品的关键信息。
-
-要求：
-1. 商品名称：从标题或商品名称中提取
-2. 商品卖点/特色：列出商品的主要特点和优势
-3. 商品规格（如有）：颜色、尺寸、材质等
-4. 价格信息（如有）
-5. 品牌信息（如有）
-6. 适用人群/场景（如有）
-
-请用JSON格式返回，字段如下：
-- productName: 商品名称
-- sellingPoints: 商品卖点列表（数组，每项一个卖点）
-- specifications: 规格信息（字符串或null）
-- price: 价格信息（字符串或null）
-- brand: 品牌信息（字符串或null）
-- targetAudience: 适用人群/场景（字符串或null）
-
-如果无法提取某项信息，请返回null。
-
-网页标题：${pageTitle || '无'}
-商品关键词：${keywords || '无'}
-Meta描述：${metaDesc || '无'}
-
-网页正文内容：
-${textContent || metaDesc || '无法提取正文内容'}`;
-
-    // 使用火山引擎 API 提取商品信息
-    const llmContent = await callVolcanoLLM([
-      { role: 'user', content: extractPrompt }
-    ]);
-
-    // 解析LLM返回的JSON
-    let productInfo;
-    try {
-      // 尝试提取JSON
-      const jsonMatch = llmContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        productInfo = JSON.parse(jsonMatch[0]);
-      } else {
-        // 如果没有找到JSON，返回原始内容作为卖点
-        productInfo = {
-          productName: pageTitle || '未识别到商品名称',
-          sellingPoints: [llmContent.slice(0, 500)],
-          specifications: null,
-          price: price,
-          brand: brand,
-          targetAudience: null
-        };
-      }
-    } catch {
-      // 解析失败，使用基本信息和原始内容
-      productInfo = {
-        productName: pageTitle || '未识别到商品名称',
-        sellingPoints: [llmContent.slice(0, 500)],
-        specifications: null,
-        price: price,
-        brand: brand,
-        targetAudience: null
-      };
+    } else {
+      productInfo.analysis = '请配置火山方舟 API 密钥以获取智能分析';
     }
 
     return NextResponse.json({
       success: true,
-      productInfo,
-      pageTitle
+      data: productInfo
     });
+
   } catch (error) {
-    console.error('读取商品链接失败:', error);
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : '读取链接失败，请稍后重试' 
+    console.error('商品信息获取失败:', error);
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : '服务器错误'
     }, { status: 500 });
   }
 }
