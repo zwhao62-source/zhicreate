@@ -239,6 +239,12 @@ export default function CopyWriteGenerator() {
                     }}
                     className="h-7 text-xs flex-1"
                   />
+                  {/* 调试：显示当前链接值 */}
+                  {inputData.productLink && (
+                    <span className="text-[9px] text-green-500 w-16 truncate">
+                      ✓ 已输入
+                    </span>
+                  )}
                   <Button
                     size="sm"
                     onClick={handleFetchLink}
