@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,8 @@ export default function CopyWriteGenerator() {
     persona: '',
     topic: ''
   });
+  // 用 ref 存储最新值，避免闭包问题
+  const linkInputRef = useRef<HTMLInputElement>(null);
   const [generatedContent, setGeneratedContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showAd, setShowAd] = useState(false);
@@ -39,9 +41,10 @@ export default function CopyWriteGenerator() {
 
   // 读取商品链接
   const handleFetchLink = async () => {
-    console.log('[DEBUG] 按钮点击，productLink =', inputData.productLink);
+    // 从 ref 获取最新值，避免闭包问题
+    const linkValue = linkInputRef.current?.value?.trim() || '';
+    console.log('[DEBUG] 按钮点击，productLink =', linkValue);
     
-    const linkValue = inputData.productLink?.trim() || '';
     if (!linkValue) {
       alert('请先粘贴商品链接');
       return;
@@ -218,14 +221,16 @@ export default function CopyWriteGenerator() {
               <div className="space-y-1">
                 <Label className="text-[11px] text-muted-foreground">商品链接</Label>
                 <div className="flex gap-1.5">
-                  <Input
+                  <input
+                    ref={linkInputRef}
+                    type="text"
                     placeholder="粘贴淘宝/京东/天猫等商品链接"
-                    value={inputData.productLink}
+                    defaultValue={inputData.productLink}
                     onChange={(e) => {
                       setInputData({ ...inputData, productLink: e.target.value });
                       setFetchError(null);
                     }}
-                    className="h-7 text-xs flex-1"
+                    className="h-7 text-xs flex-1 px-3 rounded-md border border-input bg-background"
                   />
                   {/* 调试：显示当前链接值 */}
                   {inputData.productLink && (
