@@ -25,7 +25,7 @@ export default function CopyWriteGenerator() {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success'>('idle');
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'success'>('idle');
   const [isFetching, setIsFetching] = useState(false);
-  const [fetchStatus, setFetchStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [fetchedProductName, setFetchedProductName] = useState('');
 
   const templates = [
@@ -48,7 +48,7 @@ export default function CopyWriteGenerator() {
     }
 
     setIsFetching(true);
-    setFetchStatus('fetching');
+    setFetchError(null);
 
     try {
       console.log('[DEBUG] 开始请求 API，URL =', linkValue);
@@ -70,15 +70,15 @@ export default function CopyWriteGenerator() {
           sellingPoints: data.data.sellingPoints?.join('\n') || data.data.description || prev.sellingPoints
         }));
         setFetchedProductName(data.data.title || '商品');
-        setFetchStatus('success');
+        setFetchError(null);
       } else {
         alert(data.error || '读取链接失败，请手动填写信息');
-        setFetchStatus('error');
+        setFetchError(data.error || '读取链接失败');
       }
     } catch (error) {
       console.error('读取链接失败:', error);
       alert('读取链接失败，请稍后重试');
-      setFetchStatus('error');
+      setFetchError('读取链接失败，请稍后重试');
     } finally {
       setIsFetching(false);
     }
@@ -223,7 +223,7 @@ export default function CopyWriteGenerator() {
                     value={inputData.productLink}
                     onChange={(e) => {
                       setInputData({ ...inputData, productLink: e.target.value });
-                      setFetchStatus('idle');
+                      setFetchError(null);
                     }}
                     className="h-7 text-xs flex-1"
                   />
@@ -241,7 +241,7 @@ export default function CopyWriteGenerator() {
                   >
                     {isFetching ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : fetchStatus === 'success' ? (
+                    ) : fetchedProductName ? (
                       <CheckCircle className="h-3 w-3" />
                     ) : (
                       <Link2 className="h-3 w-3" />
@@ -249,7 +249,7 @@ export default function CopyWriteGenerator() {
                     <span className="ml-1">读取</span>
                   </Button>
                 </div>
-                {fetchStatus === 'success' && fetchedProductName && (
+                {fetchedProductName && (
                   <p className="text-[10px] text-green-600 flex items-center gap-1">
                     <CheckCircle className="h-2.5 w-2.5" />
                     已读取：{fetchedProductName}
