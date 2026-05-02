@@ -241,15 +241,14 @@ export default function CopyWriteGenerator() {
                   />
                   <Button
                     size="sm"
-                    variant="outline"
                     onClick={handleFetchLink}
-                    disabled={isFetching || !inputData.productLink}
-                    className="h-7 px-2 text-[11px]"
+                    disabled={isFetching}
+                    className="h-7 px-3 text-[11px] bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0"
                   >
                     {isFetching ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     ) : fetchStatus === 'success' ? (
-                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <CheckCircle className="h-3 w-3" />
                     ) : (
                       <Link2 className="h-3 w-3" />
                     )}
