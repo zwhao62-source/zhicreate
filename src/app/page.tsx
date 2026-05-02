@@ -3,7 +3,23 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  FileText,
+  ImageIcon,
+  Video,
+  Wand2,
+  User,
+  Layers,
+  Sparkles,
+  Palette,
+  ScanFace,
+  Download,
+  Crown,
+  Menu,
+  X,
+  ChevronRight
+} from 'lucide-react';
 import CopyWriteGenerator from '@/components/features/copy-write-generator';
 import ImageGenerator from '@/components/features/image-generator';
 import VideoGenerator from '@/components/features/video-generator';
@@ -12,130 +28,215 @@ import ModelSwap from '@/components/features/model-swap';
 import DetailDesign from '@/components/features/detail-design';
 import ModelTraining from '@/components/features/model-training';
 
-// 功能按类别分组
-const featureCategories = [
-  {
-    category: '内容创作',
-    icon: '✍️',
-    features: [
-      { id: 'copywrite', label: 'AI文案生成', icon: '✍️', description: '输入商品信息，自动生成种草文案' },
-      { id: 'detail', label: 'AI详情图设计', icon: '📐', description: '生成电商内页详情图' },
-      { id: 'video', label: '图生视频', icon: '🎬', description: '生成服装动态展示视频' },
-    ]
-  },
-  {
-    category: '图片处理',
-    icon: '🎨',
-    features: [
-      { id: 'image', label: 'AI商品图生成', icon: '🎨', description: '生成专业模特展示图' },
-      { id: 'process', label: 'AI图片处理', icon: '✨', description: '美图/去水印/压缩/格式转换' },
-    ]
-  },
-  {
-    category: '模特管理',
-    icon: '👤',
-    features: [
-      { id: 'training', label: 'AI模特训练', icon: '👤', description: '训练专属AI虚拟模特' },
-      { id: 'swap', label: '模特换装与背景', icon: '🔄', description: '换脸/换装/换背景' },
-    ]
-  }
+// 功能列表
+const features = [
+  { id: 'copywrite', label: 'AI文案生成', icon: FileText, description: '智能生成种草文案', category: 'content' },
+  { id: 'detail', label: '详情图设计', icon: Layers, description: '电商详情页设计', category: 'content' },
+  { id: 'video', label: '图生视频', icon: Video, description: '服装动态展示', category: 'content' },
+  { id: 'image', label: '商品图生成', icon: Wand2, description: 'AI模特展示图', category: 'image' },
+  { id: 'process', label: '图片处理', icon: Palette, description: '美图/去背景/压缩', category: 'image' },
+  { id: 'training', label: '模特训练', icon: ScanFace, description: '训练专属虚拟模特', category: 'model' },
+  { id: 'swap', label: '模特换装', icon: User, description: '换脸/换装/换背景', category: 'model' },
 ];
 
-// 扁平化功能列表（用于渲染）
-const allFeatures = featureCategories.flatMap(cat => cat.features);
+const categoryLabels: Record<string, string> = {
+  content: '内容创作',
+  image: '图片处理',
+  model: '模特管理',
+};
 
 export default function Home() {
   const [activeFeature, setActiveFeature] = useState('copywrite');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const currentFeature = features.find(f => f.id === activeFeature);
+  const IconComponent = currentFeature?.icon || FileText;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      {/* 顶部导航栏 */}
-      <header className="sticky top-0 z-50 border-b bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-red-600">
-                <span className="text-xl font-bold text-white">智</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                  智创云电商设计
-                </h1>
-                <p className="text-xs text-muted-foreground">AI驱动 · 电商内容创作平台</p>
-              </div>
+    <div className="min-h-screen bg-background">
+      {/* 顶部导航 */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b bg-background/80 backdrop-blur-md">
+        <div className="flex items-center justify-between h-full px-4 lg:px-6">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-600">
+              <span className="text-sm font-bold text-white">智</span>
             </div>
-            <div className="flex gap-2">
-              <Link href="/pricing">
-                <Button variant="ghost" size="sm">
-                  会员定价
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="outline" size="sm">
-                  登录
-                </Button>
-              </Link>
-              <Link href="/pricing">
-                <Button size="sm" className="bg-gradient-to-r from-orange-500 to-red-600">
-                  立即开始
-                </Button>
-              </Link>
+            <div className="hidden sm:block">
+              <h1 className="text-base font-semibold tracking-tight">智创云电商设计</h1>
             </div>
+          </div>
+
+          {/* 导航链接 */}
+          <div className="flex items-center gap-1">
+            <Link href="/pricing">
+              <Button variant="ghost" size="sm" className="text-muted-foreground">
+                定价
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="ghost" size="sm" className="text-muted-foreground">
+                登录
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button size="sm" className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700">
+                立即开始
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* 主内容区 */}
-      <main className="container mx-auto px-4 py-8">
-        {/* 功能导航 - 分类卡片式 */}
-        <div className="mb-8 space-y-6">
-          {featureCategories.map((cat) => (
-            <div key={cat.category}>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                <span>{cat.icon}</span>
-                <span>{cat.category}</span>
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                {cat.features.map((feature) => (
-                  <button
-                    key={feature.id}
-                    onClick={() => setActiveFeature(feature.id)}
-                    className={`group relative flex flex-col items-center gap-2 p-4 rounded-xl transition-all duration-200 ${
-                      activeFeature === feature.id
-                        ? 'bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-lg shadow-orange-500/25'
-                        : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 hover:border-orange-300 dark:hover:border-orange-600'
-                    }`}
-                  >
-                    <span className={`text-2xl ${activeFeature === feature.id ? '' : 'opacity-70 group-hover:opacity-100'}`}>
-                      {feature.icon}
-                    </span>
-                    <div className="text-center">
-                      <div className={`font-medium text-sm ${activeFeature === feature.id ? '' : 'text-slate-700 dark:text-slate-200'}`}>
-                        {feature.label}
-                      </div>
-                    </div>
-                    {activeFeature === feature.id && (
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-white rounded-full" />
-                    )}
-                  </button>
-                ))}
-              </div>
+      {/* 主布局 */}
+      <div className="flex pt-14 h-[calc(100vh-3.5rem)]">
+        {/* 侧边功能栏 */}
+        <aside className="hidden lg:flex flex-col w-56 border-r bg-background">
+          <div className="flex-1 overflow-y-auto py-4 px-3">
+            {/* 内容创作 */}
+            <div className="mb-6">
+              <p className="px-3 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {categoryLabels.content}
+              </p>
+              <nav className="space-y-0.5">
+                {features.filter(f => f.category === 'content').map((feature) => {
+                  const Icon = feature.icon;
+                  return (
+                    <button
+                      key={feature.id}
+                      onClick={() => setActiveFeature(feature.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                        activeFeature === feature.id
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{feature.label}</span>
+                      {activeFeature === feature.id && (
+                        <ChevronRight className="w-3 h-3 ml-auto" />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
-          ))}
+
+            {/* 图片处理 */}
+            <div className="mb-6">
+              <p className="px-3 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {categoryLabels.image}
+              </p>
+              <nav className="space-y-0.5">
+                {features.filter(f => f.category === 'image').map((feature) => {
+                  const Icon = feature.icon;
+                  return (
+                    <button
+                      key={feature.id}
+                      onClick={() => setActiveFeature(feature.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                        activeFeature === feature.id
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{feature.label}</span>
+                      {activeFeature === feature.id && (
+                        <ChevronRight className="w-3 h-3 ml-auto" />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* 模特管理 */}
+            <div className="mb-6">
+              <p className="px-3 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {categoryLabels.model}
+              </p>
+              <nav className="space-y-0.5">
+                {features.filter(f => f.category === 'model').map((feature) => {
+                  const Icon = feature.icon;
+                  return (
+                    <button
+                      key={feature.id}
+                      onClick={() => setActiveFeature(feature.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                        activeFeature === feature.id
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{feature.label}</span>
+                      {activeFeature === feature.id && (
+                        <ChevronRight className="w-3 h-3 ml-auto" />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          </div>
+
+          {/* 底部会员入口 */}
+          <div className="p-3 border-t">
+            <Link href="/pricing">
+              <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                <Crown className="w-4 h-4 text-orange-500" />
+                <span>升级会员</span>
+                <Badge variant="secondary" className="ml-auto text-xs">Pro</Badge>
+              </Button>
+            </Link>
+          </div>
+        </aside>
+
+        {/* 移动端底部导航 */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
+          <div className="flex overflow-x-auto py-2 px-2 gap-1 scrollbar-hide">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <button
+                  key={feature.id}
+                  onClick={() => setActiveFeature(feature.id)}
+                  className={`flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+                    activeFeature === feature.id
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="text-xs whitespace-nowrap">{feature.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* 活跃功能区 */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
-            <span className="text-xl">{allFeatures.find(f => f.id === activeFeature)?.icon}</span>
-            <h2 className="text-lg font-semibold">
-              {allFeatures.find(f => f.id === activeFeature)?.label}
-            </h2>
-            <span className="ml-auto text-sm text-muted-foreground">
-              {allFeatures.find(f => f.id === activeFeature)?.description}
-            </span>
+        {/* 主内容区 */}
+        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+          {/* 功能标题栏 */}
+          <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b px-4 lg:px-6 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted">
+                <IconComponent className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div>
+                <h2 className="font-semibold">{currentFeature?.label}</h2>
+                <p className="text-sm text-muted-foreground">{currentFeature?.description}</p>
+              </div>
+              <div className="ml-auto">
+                <Badge variant="secondary" className="text-xs">
+                  {categoryLabels[currentFeature?.category || 'content']}
+                </Badge>
+              </div>
+            </div>
           </div>
-          <div className="min-h-[500px]">
+
+          {/* 功能组件区 */}
+          <div className="p-4 lg:p-6">
             {activeFeature === 'copywrite' && <CopyWriteGenerator />}
             {activeFeature === 'image' && <ImageGenerator />}
             {activeFeature === 'video' && <VideoGenerator />}
@@ -144,24 +245,8 @@ export default function Home() {
             {activeFeature === 'detail' && <DetailDesign />}
             {activeFeature === 'training' && <ModelTraining />}
           </div>
-        </div>
-      </main>
-
-      {/* 底部信息 */}
-      <footer className="border-t bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm mt-12">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
-            <p>智创云电商设计 - 让电商内容创作更简单</p>
-            <p className="text-xs">
-              <Link href="/pricing" className="text-primary hover:underline">会员定价</Link>
-              {' · '}
-              <Link href="/login" className="text-primary hover:underline">登录</Link>
-              {' · '}
-              <Link href="/register" className="text-primary hover:underline">注册</Link>
-            </p>
-          </div>
-        </div>
-      </footer>
+        </main>
+      </div>
     </div>
   );
 }
