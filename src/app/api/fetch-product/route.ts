@@ -1,5 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLMClient, Config } from 'coze-coding-dev-sdk';
+import crypto from 'crypto';
+
+interface VolcanoLLMResponse {
+  choices: Array<{
+    message: {
+      role: string;
+      content: string;
+    };
+    finish_reason: string;
+  }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
+// 火山引擎 API 调用
+async function callVolcanoLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
+  const accessKey = process.env.VOLC_ACCESSKEY;
+  const secretKey = process.env.VOLC_SECRETKEY;
+
+  if (!accessKey || !secretKey) {
+    throw new Error('未配置火山引擎 API 密钥');
+  }
+
+  const region = 'cn-north-1';
+  const service = 'volcengineai';
+  const host = 'open.volcengineapi.com';
+  const version = '2025-01-01';
+  const action = 'ChatCompletions';
+  const algorithm = 'HMAC-SHA256';
+
+  // 生成时间戳和日期
+  const now = new Date();
+  const timestamp = Math.floor(now.getTime() / 1000);
+  const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
+
+  // 构建请求体
+  const requestBody = {
+    model: 'doubao-seed-1-6-lite-251015',
+    messages: messages,
+    temperature: 0.3,
+    stream: false
+  };
+
+  // 签名计算
+  const signedHeaders = 'content-type;host;x-date';
+  const contentType = 'application/json';
+
+  const canonicalRequest = [
+    'POST',
+    '/',
+    '',
+    `content-type:application/json`,
+    `host:${host}`,
+    `x-date:${new Date().toISOString()}`,
+    '',
+    signedHeaders,
+    crypto.createHash('sha256').update(JSON.stringify(requestBody)).digest('hex')
+  ].join('\n');
+
+  const credentialScope = `${dateStr}/${region}/${service}/request`;
+  const stringToSign = [
+    algorithm,
+    new Date().toISOString(),
+    credentialScope,
+    crypto.createHash('sha256').update(canonicalRequest).digest('hex')
+  ].join('\n');
+
+  const signingKey = crypto
+    .createHmac('SHA256', `VOLCENGINE4${secretKey}`)
+    .update(dateStr)
+    .digest();
+  const signature = crypto
+    .createHmac('SHA256', signingKey)
+    .update(stringToSign)
+    .digest('hex');
+
+  const authHeader = `${algorithm} Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  // 发起请求
+  const response = await fetch(`https://${host}/${version}/${action}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': contentType,
+      'Host': host,
+      'X-Date': new Date().toISOString(),
+      'Authorization': authHeader
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API 调用失败: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json() as VolcanoLLMResponse;
+  return data.choices[0]?.message?.content || '';
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -119,31 +219,23 @@ Meta描述：${metaDesc || '无'}
 网页正文内容：
 ${textContent || metaDesc || '无法提取正文内容'}`;
 
-    // 使用LLM提取商品信息
-    const config = new Config();
-    const llmClient = new LLMClient(config);
-
-    const messages = [
-      { role: 'user' as const, content: extractPrompt }
-    ];
-
-    const llmResponse = await llmClient.invoke(messages, {
-      model: 'doubao-seed-1-6-lite-251015',
-      temperature: 0.3
-    });
+    // 使用火山引擎 API 提取商品信息
+    const llmContent = await callVolcanoLLM([
+      { role: 'user', content: extractPrompt }
+    ]);
 
     // 解析LLM返回的JSON
     let productInfo;
     try {
       // 尝试提取JSON
-      const jsonMatch = llmResponse.content.match(/\{[\s\S]*\}/);
+      const jsonMatch = llmContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         productInfo = JSON.parse(jsonMatch[0]);
       } else {
         // 如果没有找到JSON，返回原始内容作为卖点
         productInfo = {
           productName: pageTitle || '未识别到商品名称',
-          sellingPoints: [llmResponse.content.slice(0, 500)],
+          sellingPoints: [llmContent.slice(0, 500)],
           specifications: null,
           price: price,
           brand: brand,
@@ -154,7 +246,7 @@ ${textContent || metaDesc || '无法提取正文内容'}`;
       // 解析失败，使用基本信息和原始内容
       productInfo = {
         productName: pageTitle || '未识别到商品名称',
-        sellingPoints: [llmResponse.content.slice(0, 500)],
+        sellingPoints: [llmContent.slice(0, 500)],
         specifications: null,
         price: price,
         brand: brand,
@@ -167,11 +259,10 @@ ${textContent || metaDesc || '无法提取正文内容'}`;
       productInfo,
       pageTitle
     });
-
   } catch (error) {
-    console.error('解析商品链接失败:', error);
+    console.error('读取商品链接失败:', error);
     return NextResponse.json({ 
-      error: '解析失败，请稍后重试' 
+      error: error instanceof Error ? error.message : '读取链接失败，请稍后重试' 
     }, { status: 500 });
   }
 }
