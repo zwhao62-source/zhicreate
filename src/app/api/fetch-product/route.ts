@@ -45,6 +45,73 @@ async function simpleFetch(url: string): Promise<{
     title = productNameMatch[1].trim();
   }
 
+  // 4. JSON-LD 结构化数据（常见电商平台）
+  if (!title) {
+    const jsonLdMatch = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i);
+    if (jsonLdMatch) {
+      try {
+        const jsonLd = JSON.parse(jsonLdMatch[1]);
+        title = jsonLd.name || jsonLd.headline || '';
+      } catch {}
+    }
+  }
+  
+  // 5. 天猫/淘宝特殊格式
+  if (!title) {
+    // 方式A: JSON数据中的title
+    const tbTitleMatch = html.match(/["']title["']\s*:\s*["']([^"']{10,200})["']/g);
+    if (tbTitleMatch) {
+      for (const match of tbTitleMatch) {
+        const t = match.match(/["']title["']\s*:\s*["']([^"']+)["']/);
+        if (t && t[1].length > 10) {
+          title = t[1];
+          break;
+        }
+      }
+    }
+  }
+  
+  // 6. window.__INITIAL_STATE__ 或类似数据
+  if (!title) {
+    const stateMatch = html.match(/window\.__\w+__\s*=\s*(\{[^;]+);/);
+    if (stateMatch) {
+      const titleInState = stateMatch[1].match(/title["']?\s*[:=]\s*["']([^"']+)["']/);
+      if (titleInState) {
+        title = titleInState[1];
+      }
+    }
+  }
+  
+  // 7. data-title 属性
+  if (!title) {
+    const dataTitleMatch = html.match(/data-title=["']([^"']{5,200})["']/i);
+    if (dataTitleMatch) {
+      title = dataTitleMatch[1];
+    }
+  }
+  
+  // 8. item-title 或 product-title 类名
+  if (!title) {
+    const classTitleMatch = html.match(/<(?:h1|h2|span|div)[^>]*(?:item-title|product-title|title|subject)[^>]*>([^<]{5,100})</i);
+    if (classTitleMatch) {
+      title = classTitleMatch[1].trim();
+    }
+  }
+  
+  // 9. 提取页面中第一个较长的文本作为备选
+  if (!title) {
+    const longTextMatch = html.match(/<span[^>]*>([^<]{20,150})<\/span>/g);
+    if (longTextMatch) {
+      for (const match of longTextMatch) {
+        const text = match.replace(/<[^>]+>/g, '').trim();
+        if (text && text.length > 15 && !text.includes('http') && !text.includes('button')) {
+          title = text;
+          break;
+        }
+      }
+    }
+  }
+
   // 提取meta描述
   let description = '';
   const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
@@ -79,6 +146,43 @@ async function simpleFetch(url: string): Promise<{
       const fullUrl = src.startsWith('//') ? 'https:' + src : src;
       if (!images.includes(fullUrl) && images.length < 10) {
         images.push(fullUrl);
+      }
+    }
+  }
+
+  // 3. data-src 懒加载图片
+  const dataSrcMatches = html.matchAll(/data-src=["']([^"']+)["']/gi);
+  for (const match of dataSrcMatches) {
+    const src = match[1];
+    if (src && (src.startsWith('http') || src.startsWith('//')) && 
+        !src.includes('icon') && !src.includes('logo')) {
+      const fullUrl = src.startsWith('//') ? 'https:' + src : src;
+      if (!images.includes(fullUrl) && images.length < 10) {
+        images.push(fullUrl);
+      }
+    }
+  }
+  
+  // 4. 天猫/淘宝商品图
+  const tbImgMatch = html.match(/(https?:\/\/img\.alicdn\.com\/[^"'>\s]+)/g);
+  if (tbImgMatch && images.length < 3) {
+    for (const img of tbImgMatch.slice(0, 5)) {
+      if (!images.includes(img) && images.length < 10) {
+        images.push(img);
+      }
+    }
+  }
+  
+  // 5. JSON数据中的图片
+  const jsonImgMatch = html.match(/["']image["']\s*:\s*["']([^"']+)["']/gi);
+  if (jsonImgMatch && images.length < 3) {
+    for (const match of jsonImgMatch.slice(0, 3)) {
+      const imgUrl = match.match(/["']image["']\s*:\s*["']([^"']+)["']/);
+      if (imgUrl && (imgUrl[1].startsWith('http') || imgUrl[1].startsWith('//'))) {
+        const fullUrl = imgUrl[1].startsWith('//') ? 'https:' + imgUrl[1] : imgUrl[1];
+        if (!images.includes(fullUrl) && images.length < 10) {
+          images.push(fullUrl);
+        }
       }
     }
   }
