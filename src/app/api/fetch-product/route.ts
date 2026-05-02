@@ -1,81 +1,107 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { FetchClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+import { HeaderUtils } from 'coze-coding-dev-sdk';
 
-// 使用 FetchClient 获取网页内容
-async function fetchProductPage(url: string, customHeaders?: Record<string, string>): Promise<{
+// 简单的网页抓取方式（不依赖火山SDK）
+async function simpleFetch(url: string): Promise<{
   title: string;
   description: string;
   price: string;
   images: string[];
   rawText: string;
 }> {
-  const config = new Config();
-  const client = new FetchClient(config, customHeaders);
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    },
+    signal: AbortSignal.timeout(15000),
+  });
 
-  const response = await client.fetch(url);
-
-  if (response.status_code !== 0) {
-    throw new Error(`获取网页失败: ${response.status_message}`);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
   }
 
-  // 提取文本内容
-  const textItems = response.content.filter(item => item.type === 'text');
-  const rawText = textItems.map(item => item.text).join('\n');
-
-  // 提取图片
-  const images = response.content
-    .filter(item => item.type === 'image')
-    .map(item => item.image?.display_url || item.image?.image_url || '')
-    .filter(url => url);
+  const html = await response.text();
 
   // 提取标题
-  const title = response.title || '';
+  let title = '';
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  if (titleMatch) {
+    title = titleMatch[1].trim();
+  }
 
-  // 提取描述
-  const description = textItems.slice(0, 5).join(' ').substring(0, 500);
+  // 提取meta描述
+  let description = '';
+  const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+  if (descMatch) {
+    description = descMatch[1].trim();
+  }
 
-  // 尝试提取价格（从文本中查找）
-  const priceMatch = rawText.match(/(?:价格|价|￥|¥|\$|price)[:\s]*([\d,.]+)/i);
-  const price = priceMatch ? `¥${priceMatch[1]}` : '';
+  // 提取商品图片
+  const images: string[] = [];
+  const imgMatches = html.matchAll(/<img[^>]*src=["']([^"']+)["']/gi);
+  for (const match of imgMatches) {
+    const src = match[1];
+    if (src && (src.startsWith('http') || src.startsWith('//')) && !src.includes('icon') && !src.includes('logo')) {
+      const fullUrl = src.startsWith('//') ? 'https:' + src : src;
+      if (!images.includes(fullUrl)) {
+        images.push(fullUrl);
+      }
+    }
+  }
+
+  // 提取价格
+  let price = '';
+  const pricePatterns = [
+    /["']price["']\s*:\s*["']?([\d,.]+)/i,
+    /price["']?\s*[:=]\s*["']?([\d,.]+)/i,
+    /[¥$￥]\s*([\d,.]+)/,
+    /价格[：:]\s*[¥$￥]?\s*([\d,.]+)/,
+  ];
+  
+  for (const pattern of pricePatterns) {
+    const match = html.match(pattern);
+    if (match) {
+      price = `¥${match[1]}`;
+      break;
+    }
+  }
+
+  // 提取纯文本
+  const rawText = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   return {
-    title,
-    description,
+    title: title.substring(0, 200),
+    description: description.substring(0, 500),
     price,
-    images: images.slice(0, 10), // 限制图片数量
-    rawText
+    images: images.slice(0, 10),
+    rawText: rawText.substring(0, 5000)
   };
 }
 
 // 使用 AI 分析商品信息
-async function analyzeProductWithAI(
-  title: string,
-  description: string,
-  rawText: string,
-  customHeaders?: Record<string, string>
+async function analyzeWithAI(
+  text: string,
+  apiKey: string
 ): Promise<{
   productName: string;
   shortDescription: string;
   sellingPoints: string[];
   targetAudience: string;
 }> {
-  const apiKey = process.env.VOLC_API_KEY;
+  const prompt = `请从以下网页内容中提取商品信息，返回JSON格式：
 
-  if (!apiKey) {
-    throw new Error('未配置火山方舟 API 密钥 (VOLC_API_KEY)');
-  }
+网页内容：${text.substring(0, 4000)}
 
-  const prompt = `你是一个专业的电商运营专家。请根据以下商品信息提取关键卖点。
-
-商品标题：${title}
-
-商品描述：${description.substring(0, 1000)}
-
-页面内容摘要：${rawText.substring(0, 3000)}
-
-请提取以下信息（用JSON格式返回）：
+返回格式：
 {
-  "productName": "商品名称（简洁）",
+  "productName": "商品名称（简洁，不超过50字）",
   "shortDescription": "一句话描述（20字内）",
   "sellingPoints": ["卖点1", "卖点2", "卖点3"],
   "targetAudience": "目标人群描述"
@@ -88,45 +114,35 @@ async function analyzeProductWithAI(
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
-      ...customHeaders
     },
     body: JSON.stringify({
       model: 'doubao-seed-1-6-lite-251015',
-      messages: [
-        { role: 'user', content: prompt }
-      ],
+      messages: [{ role: 'user', content: prompt }],
       temperature: 0.3
-    })
+    }),
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!response.ok) {
-    throw new Error(`AI分析失败: ${response.status}`);
+    const errorText = await response.text();
+    throw new Error(`AI API错误: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '{}';
 
-  try {
-    // 尝试解析 JSON
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-  } catch {
-    // 解析失败，返回默认值
+  // 解析JSON
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return JSON.parse(jsonMatch[0]);
   }
 
-  return {
-    productName: title.substring(0, 50),
-    shortDescription: description.substring(0, 50),
-    sellingPoints: [],
-    targetAudience: '电商消费者'
-  };
+  throw new Error('无法解析AI返回结果');
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json();
+    const { url, useAI = true } = await request.json();
 
     if (!url) {
       return NextResponse.json(
@@ -135,7 +151,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 验证 URL 格式
+    // 验证URL
     try {
       new URL(url);
     } catch {
@@ -145,41 +161,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 提取转发 headers
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
+    console.log('[fetch-product] 开始获取:', url);
 
     // 获取网页内容
-    const pageData = await fetchProductPage(url, customHeaders);
-
-    // 使用 AI 分析（如果配置了 API Key）
-    let aiAnalysis = null;
+    let pageData;
     try {
-      aiAnalysis = await analyzeProductWithAI(
-        pageData.title,
-        pageData.description,
-        pageData.rawText,
-        customHeaders
-      );
+      pageData = await simpleFetch(url);
+      console.log('[fetch-product] 网页获取成功，标题:', pageData.title);
     } catch (error) {
-      console.warn('AI分析失败:', error);
-      // AI 失败不影响主流程
+      console.error('[fetch-product] 网页获取失败:', error);
+      return NextResponse.json(
+        { error: `无法访问该链接: ${error instanceof Error ? error.message : '未知错误'}` },
+        { status: 500 }
+      );
+    }
+
+    // 尝试AI分析
+    let aiAnalysis = null;
+    const apiKey = process.env.VOLC_API_KEY;
+
+    if (useAI && apiKey) {
+      try {
+        console.log('[fetch-product] 开始AI分析...');
+        const combinedText = `${pageData.title}\n\n${pageData.description}\n\n${pageData.rawText.substring(0, 3000)}`;
+        aiAnalysis = await analyzeWithAI(combinedText, apiKey);
+        console.log('[fetch-product] AI分析成功:', aiAnalysis);
+      } catch (error) {
+        console.warn('[fetch-product] AI分析失败:', error);
+        // AI失败不影响返回结果
+      }
     }
 
     return NextResponse.json({
       success: true,
       data: {
-        title: aiAnalysis?.productName || pageData.title,
-        description: aiAnalysis?.shortDescription || pageData.description.substring(0, 200),
+        title: aiAnalysis?.productName || pageData.title || '未知商品',
+        description: aiAnalysis?.shortDescription || pageData.description || '',
         price: pageData.price,
         images: pageData.images,
         sellingPoints: aiAnalysis?.sellingPoints || [],
         targetAudience: aiAnalysis?.targetAudience || '',
-        rawText: pageData.rawText.substring(0, 1000) // 返回部分原文供参考
+        hasAI: !!apiKey,
       }
     });
 
   } catch (error) {
-    console.error('Error fetching product:', error);
+    console.error('[fetch-product] 整体错误:', error);
     return NextResponse.json(
       { error: `读取商品链接失败: ${error instanceof Error ? error.message : '未知错误'}` },
       { status: 500 }
