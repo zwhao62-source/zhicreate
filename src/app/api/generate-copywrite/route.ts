@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLMClient, Config } from 'coze-coding-dev-sdk';
+
+// 方舟API配置
+const ARK_API_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
+const MODEL = 'doubao-seed-1-5-25-0328';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, productLink, sellingPoints, persona, topic, template } = body;
+    const { sellingPoints, persona, topic, template } = body;
 
     // 验证必填字段
     if (!sellingPoints) {
@@ -54,19 +57,10 @@ export async function POST(request: NextRequest) {
     };
 
     const systemPrompt = systemPrompts[template] || systemPrompts.zhongcao;
+    const templateName = template === 'zhongcao' ? '种草文案' : template === 'baowen' ? '爆文' : template === 'chanpin' ? '产品介绍' : '社区互动文案';
 
     // 构建用户提示词
-    let userPrompt = `请根据以下商品信息生成${template === 'zhongcao' ? '种草文案' : template === 'baowen' ? '爆文' : template === 'chanpin' ? '产品介绍' : '社区互动文案'}：\n\n`;
-    
-    if (productId) {
-      userPrompt += `商品ID：${productId}\n`;
-    }
-    
-    if (productLink) {
-      userPrompt += `商品链接：${productLink}\n`;
-    }
-    
-    userPrompt += `商品卖点：${sellingPoints}\n`;
+    let userPrompt = `请根据以下商品信息生成${templateName}：\n\n商品卖点：${sellingPoints}\n`;
     
     if (persona) {
       userPrompt += `人设风格：${persona}\n`;
@@ -78,30 +72,82 @@ export async function POST(request: NextRequest) {
 
     userPrompt += `\n请直接输出文案内容，不要包含其他说明文字。`;
 
-    // 创建 LLM 客户端
-    const config = new Config();
-    const client = new LLMClient(config);
+    // 获取 API Key
+    const apiKey = process.env.VOLC_API_KEY;
 
-    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ];
+    if (!apiKey) {
+      // 如果没有配置 API Key，返回友好的提示
+      return NextResponse.json(
+        { error: '未配置 AI 服务，请联系管理员配置 VOLC_API_KEY' },
+        { status: 503 }
+      );
+    }
 
     // 创建流式响应
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const llmStream = client.stream(messages, {
-            temperature: 0.8,
-            model: 'doubao-seed-1-8-251228'
+          const response = await fetch(`${ARK_API_BASE}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: MODEL,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              stream: true,
+              temperature: 0.8
+            })
           });
 
-          for await (const chunk of llmStream) {
-            if (chunk.content) {
-              const content = chunk.content.toString();
-              const data = `data: ${JSON.stringify({ content })}\n\n`;
-              controller.enqueue(encoder.encode(data));
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('方舟API错误:', response.status, errorText);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `AI服务错误: ${response.status}` })}\n\n`));
+            controller.close();
+            return;
+          }
+
+          const reader = response.body?.getReader();
+          if (!reader) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: '无法读取AI响应' })}\n\n`));
+            controller.close();
+            return;
+          }
+
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') {
+                  controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                } else {
+                  try {
+                    const parsed = JSON.parse(data);
+                    const content = parsed.choices?.[0]?.delta?.content;
+                    if (content) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                    }
+                  } catch (e) {
+                    // 忽略解析错误
+                  }
+                }
+              }
             }
           }
 
