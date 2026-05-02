@@ -24,11 +24,25 @@ async function simpleFetch(url: string): Promise<{
 
   const html = await response.text();
 
-  // 提取标题
+  // 提取标题 - 多种方式
   let title = '';
+  
+  // 1. title标签
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
   if (titleMatch) {
-    title = titleMatch[1].trim();
+    title = titleMatch[1].replace(/_天猫|旗舰店|淘宝旺旺|阿里巴巴/g, '').trim();
+  }
+  
+  // 2. og:title
+  const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
+  if (!title && ogTitleMatch) {
+    title = ogTitleMatch[1].trim();
+  }
+  
+  // 3. 商品名称
+  const productNameMatch = html.match(/["']title["']\s*[:=]\s*["']([^"']{5,100})["']/i);
+  if (!title && productNameMatch) {
+    title = productNameMatch[1].trim();
   }
 
   // 提取meta描述
@@ -37,15 +51,33 @@ async function simpleFetch(url: string): Promise<{
   if (descMatch) {
     description = descMatch[1].trim();
   }
+  
+  // og:description
+  if (!description) {
+    const ogDescMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
+    if (ogDescMatch) {
+      description = ogDescMatch[1].trim();
+    }
+  }
 
-  // 提取商品图片
+  // 提取商品图片 - 多种方式
   const images: string[] = [];
+  
+  // 1. og:image
+  const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+  if (ogImageMatch) {
+    const imgUrl = ogImageMatch[1].startsWith('//') ? 'https:' + ogImageMatch[1] : ogImageMatch[1];
+    images.push(imgUrl);
+  }
+  
+  // 2. 所有图片
   const imgMatches = html.matchAll(/<img[^>]*src=["']([^"']+)["']/gi);
   for (const match of imgMatches) {
     const src = match[1];
-    if (src && (src.startsWith('http') || src.startsWith('//')) && !src.includes('icon') && !src.includes('logo')) {
+    if (src && (src.startsWith('http') || src.startsWith('//')) && 
+        !src.includes('icon') && !src.includes('logo') && !src.includes('1x1')) {
       const fullUrl = src.startsWith('//') ? 'https:' + src : src;
-      if (!images.includes(fullUrl)) {
+      if (!images.includes(fullUrl) && images.length < 10) {
         images.push(fullUrl);
       }
     }
