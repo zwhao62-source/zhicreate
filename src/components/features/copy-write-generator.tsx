@@ -39,50 +39,38 @@ export default function CopyWriteGenerator() {
 
   // 读取商品链接
   const handleFetchLink = async () => {
-    if (!inputData.productLink) {
+    console.log('[DEBUG] 按钮点击，productLink =', inputData.productLink);
+    
+    const linkValue = inputData.productLink?.trim() || '';
+    if (!linkValue) {
       alert('请先粘贴商品链接');
       return;
     }
 
     setIsFetching(true);
-    setFetchStatus('idle');
+    setFetchStatus('fetching');
 
     try {
+      console.log('[DEBUG] 开始请求 API，URL =', linkValue);
+      
       const response = await fetch('/api/fetch-product', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: inputData.productLink })
+        body: JSON.stringify({ url: linkValue })
       });
 
       const data = await response.json();
+      console.log('[DEBUG] API 返回数据:', JSON.stringify(data));
 
-      if (data.success && data.productInfo) {
+      if (data.success && data.data) {
         // 自动填充解析出的信息
-        const newData = { ...inputData };
-        
-        if (data.productInfo.productName) {
-          newData.productId = data.productInfo.productName;
-        }
-        
-        if (data.productInfo.sellingPoints && Array.isArray(data.productInfo.sellingPoints)) {
-          newData.sellingPoints = data.productInfo.sellingPoints.join('\n');
-        } else if (data.productInfo.sellingPoints) {
-          newData.sellingPoints = data.productInfo.sellingPoints;
-        }
-        
-        if (data.productInfo.brand && !newData.persona) {
-          newData.persona = `品牌：${data.productInfo.brand}`;
-        }
-        
-        if (data.productInfo.targetAudience) {
-          newData.persona = (newData.persona ? newData.persona + ' | ' : '') + data.productInfo.targetAudience;
-        }
-        
-        setInputData(newData);
-        setFetchedProductName(data.productInfo.productName || data.pageTitle || '商品');
+        setInputData(prev => ({
+          ...prev,
+          productId: data.data.title || prev.productId,
+          sellingPoints: data.data.sellingPoints?.join('\n') || data.data.description || prev.sellingPoints
+        }));
+        setFetchedProductName(data.data.title || '商品');
         setFetchStatus('success');
-        
-        setTimeout(() => setFetchStatus('idle'), 3000);
       } else {
         alert(data.error || '读取链接失败，请手动填写信息');
         setFetchStatus('error');
