@@ -9,6 +9,6 @@ echo "Installing dependencies..."
 pnpm install --prefer-frozen-lockfile --prefer-offline --loglevel debug --reporter=append-only
 
 echo "Building the project..."
-pnpm next build
+pnpm exec next build
 
 echo "Build completed successfully!"
