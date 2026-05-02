@@ -185,6 +185,32 @@ export const adminLogs = pgTable(
   })
 );
 
+// ==================== 生成历史记录表 ====================
+export const generationHistory = pgTable(
+  "generation_history",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id", { length: 36 }).notNull(),
+    feature: varchar("feature", { length: 50 }).notNull(), // copywrite/image/video/detail_swap/model_swap
+    title: varchar("title", { length: 200 }), // 生成内容标题
+    input: jsonb("input"), // 输入参数
+    output: jsonb("output"), // 输出结果（图片URL/文案内容等）
+    thumbnail: text("thumbnail"), // 缩略图URL
+    status: varchar("status", { length: 20 }).default('completed').notNull(), // pending/completed/failed
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userIdIdx: index("history_user_id_idx").on(table.userId),
+    featureIdx: index("history_feature_idx").on(table.feature),
+    createdAtIdx: index("history_created_at_idx").on(table.createdAt),
+  })
+);
+
 // ==================== Zod Schema ====================
 const { createInsertSchema: createCoercedInsertSchema } = createSchemaFactory({
   coerce: { date: true },
@@ -299,6 +325,17 @@ export const insertAdminLogSchema = createCoercedInsertSchema(adminLogs).pick({
   ip: true,
 });
 
+// 生成历史 Schema
+export const insertHistorySchema = createCoercedInsertSchema(generationHistory).pick({
+  userId: true,
+  feature: true,
+  title: true,
+  input: true,
+  output: true,
+  thumbnail: true,
+  status: true,
+});
+
 // TypeScript Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -321,6 +358,9 @@ export type InsertPlanConfig = z.infer<typeof insertPlanConfigSchema>;
 
 export type LoginLog = typeof loginLogs.$inferSelect;
 export type InsertLoginLog = z.infer<typeof insertLoginLogSchema>;
+
+export type GenerationHistory = typeof generationHistory.$inferSelect;
+export type InsertGenerationHistory = z.infer<typeof insertHistorySchema>;
 
 export type AdminLog = typeof adminLogs.$inferSelect;
 export type InsertAdminLog = z.infer<typeof insertAdminLogSchema>;

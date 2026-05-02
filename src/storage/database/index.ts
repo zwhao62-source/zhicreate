@@ -1,3 +1,6 @@
+// 数据库实例导出
+export { db } from "./client";
+
 // 数据库 Manager 导出
 export { userManager, hashPassword, verifyPassword } from "./userManager";
 export { orderManager, generateOrderNo } from "./orderManager";

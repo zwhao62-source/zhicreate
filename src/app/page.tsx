@@ -18,7 +18,8 @@ import {
   Crown,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  Clock
 } from 'lucide-react';
 import CopyWriteGenerator from '@/components/features/copy-write-generator';
 import ImageGenerator from '@/components/features/image-generator';
@@ -106,7 +107,7 @@ export default function Home() {
                       onClick={() => setActiveFeature(feature.id)}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
                         activeFeature === feature.id
-                          ? 'bg-primary/10 text-primary font-medium'
+                          ? 'bg-gradient-to-r from-orange-500/20 to-red-600/20 text-orange-600 font-medium border-l-[3px] border-orange-500'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
@@ -135,7 +136,7 @@ export default function Home() {
                       onClick={() => setActiveFeature(feature.id)}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
                         activeFeature === feature.id
-                          ? 'bg-primary/10 text-primary font-medium'
+                          ? 'bg-gradient-to-r from-orange-500/20 to-red-600/20 text-orange-600 font-medium border-l-[3px] border-orange-500'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
@@ -164,7 +165,7 @@ export default function Home() {
                       onClick={() => setActiveFeature(feature.id)}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
                         activeFeature === feature.id
-                          ? 'bg-primary/10 text-primary font-medium'
+                          ? 'bg-gradient-to-r from-orange-500/20 to-red-600/20 text-orange-600 font-medium border-l-[3px] border-orange-500'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
@@ -181,7 +182,13 @@ export default function Home() {
           </div>
 
           {/* 底部会员入口 */}
-          <div className="p-3 border-t">
+          <div className="p-3 border-t space-y-2">
+            <Link href="/history">
+              <Button variant="ghost" className="w-full justify-start gap-2" size="sm">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span>生成历史</span>
+              </Button>
+            </Link>
             <Link href="/pricing">
               <Button variant="outline" className="w-full justify-start gap-2" size="sm">
                 <Crown className="w-4 h-4 text-orange-500" />
