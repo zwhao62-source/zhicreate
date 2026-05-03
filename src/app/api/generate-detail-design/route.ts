@@ -29,9 +29,19 @@ export async function POST(request: NextRequest) {
 
     const apiKey = getApiKey();
     
-    // 如果没有API Key或卖点，使用默认内容
-    if (!apiKey || !sellingPoints || sellingPoints.length === 0) {
-      const defaultPoints = sellingPoints?.length > 0 ? sellingPoints : [
+    // 处理卖点数据
+    let pointsArray: string[] = [];
+    if (sellingPoints) {
+      if (typeof sellingPoints === 'string') {
+        pointsArray = sellingPoints.split('|').filter(p => p.trim());
+      } else if (Array.isArray(sellingPoints)) {
+        pointsArray = sellingPoints.filter(p => p && typeof p === 'string');
+      }
+    }
+    
+    // 如果没有API Key或卖点为空，使用默认内容
+    if (!apiKey || pointsArray.length === 0) {
+      const defaultPoints = pointsArray.length > 0 ? pointsArray : [
         '精选优质原料',
         '精湛工艺制作',
         '时尚外观设计',
@@ -66,7 +76,7 @@ export async function POST(request: NextRequest) {
 
 商品名称：${productName}
 品牌：${brandName || '未指定'}
-卖点：${sellingPoints.join('、')}
+卖点：${pointsArray.join('、')}
 风格：${style || '现代简约'}
 主色调：${colorScheme || '#FF6B35'}
 
