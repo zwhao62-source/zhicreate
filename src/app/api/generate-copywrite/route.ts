@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // 方舟API配置
 const ARK_API_BASE = 'https://ark.cn-beijing.volces.com/api/v3';
-const MODEL = 'doubao-seed-1-5-25-0328';
+const MODEL = 'doubao-pro-4k'; // 方舟大模型4K上下文版本
 
 export async function POST(request: NextRequest) {
   try {
