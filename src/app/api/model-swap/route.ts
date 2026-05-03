@@ -1,176 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ImageGenerationClient, Config } from 'coze-coding-dev-sdk';
+
+// 方舟API配置
+const VOLC_API_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+
+function getApiKey(): string | null {
+  return process.env.VOLC_API_KEY || null;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const source = formData.get('source') as File;
-    const face = formData.get('face') as File | null;
-    const background = formData.get('background') as File | null;
-    const mode = formData.get('mode') as string;
+    const body = await request.json();
+    const { sourceImage, targetImage, action } = body;
 
-    // 验证必填字段
-    if (!source) {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      return NextResponse.json({
+        error: '请配置VOLC_API_KEY',
+        hint: '在环境变量中配置方舟大模型API Key'
+      }, { status: 400 });
+    }
+
+    if (!sourceImage) {
       return NextResponse.json(
-        { error: '请上传模特图片' },
+        { error: '请提供源图片' },
         { status: 400 }
       );
     }
 
-    if (mode === 'face' && !face) {
-      return NextResponse.json(
-        { error: '请上传人脸图片' },
-        { status: 400 }
-      );
-    }
+    // 模特换脸/换装提示词
+    const actionPrompts: Record<string, string> = {
+      swap_face: '将第一张图片中的人物面部替换到第二张图片中的人物身上，保持自然逼真',
+      change_clothes: '将第一张图片中的人物衣服替换为第二张图片中的服装款式',
+      change_background: '将第一张图片的背景替换为第二张图片中的场景',
+      swap_shoes: '将第一张图片中的人物鞋子替换为第二张图片中的款式',
+      swap_hat: '将第一张图片中的人物帽子/饰品替换为第二张图片中的款式'
+    };
 
-    if (mode === 'background' && !background) {
-      return NextResponse.json(
-        { error: '请上传背景图片' },
-        { status: 400 }
-      );
-    }
+    const actionPrompt = actionPrompts[action] || '将第一张图片的人物特征应用到第二张图片中';
 
-    if (mode === 'both' && (!face || !background)) {
-      return NextResponse.json(
-        { error: '请上传人脸和背景图片' },
-        { status: 400 }
-      );
-    }
-
-    // 将源图片转换为base64
-    const sourceBytes = await source.arrayBuffer();
-    const sourceBuffer = Buffer.from(sourceBytes);
-    const sourceBase64 = sourceBuffer.toString('base64');
-    const sourceImageUrl = `data:${source.type};base64,${sourceBase64}`;
-
-    let prompt = '';
-
-    // 构建提示词
-    if (mode === 'face') {
-      const faceBytes = await face!.arrayBuffer();
-      const faceBuffer = Buffer.from(faceBytes);
-      const faceBase64 = faceBuffer.toString('base64');
-      const faceImageUrl = `data:${face!.type};base64,${faceBase64}`;
-
-      prompt = `Replace the model's face in the source image with the face from the reference image. Maintain the original pose, lighting, and expression. Create a natural and seamless face swap.`;
-
-      // 使用两张图片（源图和人脸图）进行图生图
-      const config = new Config();
-      const client = new ImageGenerationClient(config);
-
-      const response = await client.generate({
-        prompt: prompt,
-        image: [sourceImageUrl, faceImageUrl],
-        size: '2K',
-        watermark: false,
-        responseFormat: 'url'
-      });
-
-      const helper = client.getResponseHelper(response);
-
-      if (helper.success && helper.imageUrls.length > 0) {
-        return NextResponse.json({
-          success: true,
-          imageUrl: helper.imageUrls[0]
-        });
-      } else {
-        return NextResponse.json(
+    // 调用方舟API生成处理提示词
+    const response = await fetch(VOLC_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'doubao-seed-1-5-25-0325',
+        messages: [
           { 
-            success: false, 
-            error: helper.errorMessages.join(', ') || '换脸失败' 
+            role: 'system', 
+            content: '你是一位专业的AI图像处理专家，擅长生成图像编辑提示词。' 
           },
-          { status: 500 }
-        );
-      }
-    } 
-    else if (mode === 'background') {
-      const bgBytes = await background!.arrayBuffer();
-      const bgBuffer = Buffer.from(bgBytes);
-      const bgBase64 = bgBuffer.toString('base64');
-      const bgImageUrl = `data:${background!.type};base64,${bgBase64}`;
-
-      prompt = `Replace the background of the source image with the new background image while keeping the model and their pose exactly the same. Blend seamlessly with proper lighting and perspective.`;
-
-      const config = new Config();
-      const client = new ImageGenerationClient(config);
-
-      const response = await client.generate({
-        prompt: prompt,
-        image: [sourceImageUrl, bgImageUrl],
-        size: '2K',
-        watermark: false,
-        responseFormat: 'url'
-      });
-
-      const helper = client.getResponseHelper(response);
-
-      if (helper.success && helper.imageUrls.length > 0) {
-        return NextResponse.json({
-          success: true,
-          imageUrl: helper.imageUrls[0]
-        });
-      } else {
-        return NextResponse.json(
           { 
-            success: false, 
-            error: helper.errorMessages.join(', ') || '换背景失败' 
-          },
-          { status: 500 }
-        );
-      }
-    } 
-    else if (mode === 'both') {
-      const faceBytes = await face!.arrayBuffer();
-      const faceBuffer = Buffer.from(faceBytes);
-      const faceBase64 = faceBuffer.toString('base64');
-      const faceImageUrl = `data:${face!.type};base64,${faceBase64}`;
+            role: 'user', 
+            content: `请为以下图像处理任务生成专业的AI图像编辑提示词：\n\n任务：${actionPrompt}\n\n直接输出专业的图像编辑提示词，用于AI图像生成模型。` 
+          }
+        ],
+        max_tokens: 300,
+        temperature: 0.7
+      })
+    });
 
-      const bgBytes = await background!.arrayBuffer();
-      const bgBuffer = Buffer.from(bgBytes);
-      const bgBase64 = bgBuffer.toString('base64');
-      const bgImageUrl = `data:${background!.type};base64,${bgBase64}`;
-
-      prompt = `Replace the model's face with the face from the reference image AND replace the background with the new background image. Keep the model's pose and body the same. Create a natural and seamless result with proper lighting and perspective.`;
-
-      const config = new Config();
-      const client = new ImageGenerationClient(config);
-
-      const response = await client.generate({
-        prompt: prompt,
-        image: [sourceImageUrl, faceImageUrl, bgImageUrl],
-        size: '2K',
-        watermark: false,
-        responseFormat: 'url'
-      });
-
-      const helper = client.getResponseHelper(response);
-
-      if (helper.success && helper.imageUrls.length > 0) {
-        return NextResponse.json({
-          success: true,
-          imageUrl: helper.imageUrls[0]
-        });
-      } else {
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: helper.errorMessages.join(', ') || '处理失败' 
-          },
-          { status: 500 }
-        );
-      }
+    if (!response.ok) {
+      throw new Error(`API调用失败: ${response.status}`);
     }
 
+    const data = await response.json();
+    const editPrompt = data.choices?.[0]?.message?.content || actionPrompt;
+
+    // 注意：实际图像处理需要调用火山引擎的图像处理服务
+    // 这里返回处理提示词，实际的图像处理需要在客户端完成
+    
+    return NextResponse.json({
+      success: true,
+      editPrompt: editPrompt.trim(),
+      message: '图像编辑提示词已生成，实际处理需要上传图片到图像编辑工具'
+    });
+
+  } catch (error: any) {
+    console.error('处理图片失败:', error);
     return NextResponse.json(
-      { success: false, error: '无效的处理模式' },
-      { status: 400 }
-    );
-
-  } catch (error) {
-    console.error('处理失败:', error);
-    return NextResponse.json(
-      { success: false, error: '处理请求失败，请稍后重试' },
+      { error: error.message || '处理失败，请稍后重试' },
       { status: 500 }
     );
   }

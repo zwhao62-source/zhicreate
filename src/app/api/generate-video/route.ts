@@ -1,103 +1,104 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { VideoGenerationClient, Config } from 'coze-coding-dev-sdk';
+
+// 火山引擎视频API配置
+const VIDEO_API_URL = 'https://visual.volccdn.com/video';
+
+function getConfig() {
+  return {
+    accessKey: process.env.VOLC_ACCESSKEY,
+    secretKey: process.env.VOLC_SECRETKEY,
+    region: process.env.VOLC_REGION || 'cn-beijing'
+  };
+}
+
+// 简单的签名生成
+async function generateSignature(accessKey: string, secretKey: string, timestamp: number): Promise<string> {
+  const crypto = await import('crypto');
+  const stringToSign = `POST\n/video\naccess_key=${accessKey}&timestamp=${timestamp}`;
+  const hmac = crypto.createHmac('sha256', secretKey);
+  hmac.update(stringToSign);
+  return hmac.digest('base64');
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const image = formData.get('image') as File;
-    const prompt = formData.get('prompt') as string;
-    const pose = formData.get('pose') as string;
-    const duration = parseInt(formData.get('duration') as string || '5');
+    const body = await request.json();
+    const { imageUrl, prompt, duration = 5 } = body;
 
-    // 验证必填字段
-    if (!image) {
+    if (!imageUrl && !prompt) {
       return NextResponse.json(
-        { error: '请上传模特图片' },
+        { error: '请提供图片或描述' },
         { status: 400 }
       );
     }
 
-    // 验证时长范围
-    if (duration < 4 || duration > 12) {
-      return NextResponse.json(
-        { error: '视频时长必须在4-12秒之间' },
-        { status: 400 }
-      );
+    const config = getConfig();
+    
+    // 验证配置
+    if (!config.accessKey || !config.secretKey) {
+      return NextResponse.json({
+        error: '请配置火山引擎AccessKey和SecretKey',
+        hint: '在环境变量中配置 VOLC_ACCESSKEY 和 VOLC_SECRETKEY'
+      }, { status: 400 });
     }
 
-    // 将图片转换为base64
-    const bytes = await image.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString('base64');
-    const imageUrl = `data:${image.type};base64,${base64}`;
+    // 构建提示词
+    let fullPrompt = prompt || 'natural movement, cinematic';
+    if (!prompt && imageUrl) {
+      fullPrompt = 'gentle camera movement, professional cinematography, high quality';
+    }
 
-    // 根据动作类型构建提示词
-    const posePrompts: Record<string, string> = {
-      walk: 'Model walking naturally with confident posture, smooth camera movement following the model',
-      rotate: 'Model slowly turning around to show different angles, 360 degree rotation, smooth camera movement',
-      wave: 'Model waving hand naturally with friendly expression, engaging gesture',
-      dance: 'Model dancing gracefully with elegant movements, artistic performance'
+    // 调用火山引擎视频生成API
+    const timestamp = Date.now();
+    const signature = await generateSignature(config.accessKey, config.secretKey, timestamp);
+    
+    const apiUrl = `${VIDEO_API_URL}?access_key=${config.accessKey}&timestamp=${timestamp}&signature=${signature}`;
+
+    const apiBody: Record<string, any> = {
+      model: 'general-video-v1',
+      prompt: fullPrompt,
+      duration: Math.min(Math.max(duration, 4), 12), // 4-12秒
+      aspect_ratio: '16:9',
+      extra_params: {
+        return_url: true
+      }
     };
 
-    const basePrompt = posePrompts[pose] || posePrompts.rotate;
-
-    // 构建完整提示词
-    let fullPrompt = `Professional fashion model showcasing clothing with natural movements. ${basePrompt}. `;
-    
-    if (prompt) {
-      fullPrompt += `Additional instructions: ${prompt}`;
-    } else {
-      fullPrompt += 'Cinematic lighting, high quality, professional photography.';
+    if (imageUrl) {
+      apiBody.image_url = imageUrl;
     }
 
-    // 创建视频生成客户端
-    const config = new Config();
-    const client = new VideoGenerationClient(config);
-
-    // 构建内容数组
-    const content = [
-      {
-        type: 'image_url' as const,
-        image_url: {
-          url: imageUrl
-        },
-        role: 'first_frame' as const
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
       },
-      {
-        type: 'text' as const,
-        text: fullPrompt
-      }
-    ];
-
-    // 生成视频
-    const response = await client.videoGeneration(content, {
-      model: 'doubao-seedance-1-5-pro-251215',
-      duration: duration,
-      ratio: '16:9',
-      resolution: '720p',
-      watermark: false,
-      generateAudio: false
+      body: JSON.stringify(apiBody)
     });
 
-    if (response.videoUrl) {
-      return NextResponse.json({
-        success: true,
-        videoUrl: response.videoUrl
-      });
-    } else {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: response.response?.error_message || '视频生成失败' 
-        },
-        { status: 500 }
-      );
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('视频生成API错误:', response.status, errorText);
+      throw new Error(`API调用失败: ${response.status}`);
     }
 
-  } catch (error) {
+    const data = await response.json();
+    
+    if (data.data?.video_url) {
+      return NextResponse.json({
+        success: true,
+        videoUrl: data.data.video_url,
+        coverUrl: data.data.cover_url || null,
+        duration: data.data.duration || duration
+      });
+    }
+
+    throw new Error('视频生成失败');
+
+  } catch (error: any) {
     console.error('生成视频失败:', error);
     return NextResponse.json(
-      { success: false, error: '处理请求失败，请稍后重试' },
+      { error: error.message || '生成失败，请稍后重试' },
       { status: 500 }
     );
   }

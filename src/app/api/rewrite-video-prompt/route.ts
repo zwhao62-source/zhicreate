@@ -1,95 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLMClient, Config } from 'coze-coding-dev-sdk';
+
+// 方舟API配置
+const VOLC_API_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+
+function getApiKey(): string | null {
+  return process.env.VOLC_API_KEY || null;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, pose, imageType } = await request.json();
+    const body = await request.json();
+    const { prompt } = body;
 
-    if (!prompt || prompt.trim().length === 0) {
-      return NextResponse.json({ error: '请输入动作描述' }, { status: 400 });
+    if (!prompt) {
+      return NextResponse.json(
+        { error: '提示词不能为空' },
+        { status: 400 }
+      );
     }
 
-    const config = new Config();
-    const client = new LLMClient(config);
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      return NextResponse.json({
+        error: '请配置VOLC_API_KEY',
+        hint: '在环境变量中配置方舟大模型API Key'
+      }, { status: 400 });
+    }
 
-    // 根据选择的动作类型和图片类型优化提示词
-    const poseDescriptions: Record<string, string> = {
-      walk: '行走/走路',
-      rotate: '旋转/转身',
-      wave: '挥手/打招呼',
-      dance: '舞蹈/律动',
-      custom: '自定义动作'
-    };
+    // 优化提示词
+    const systemPrompt = `你是一位专业的AI视频提示词工程师，擅长将简单的动作描述转化为生动、专业的AI视频生成提示词。
+请将用户的简单描述扩展为详细的AI视频生成提示词，包含：
+1. 具体的人物动作或场景变化
+2. 镜头运动方式（如：推镜头、拉镜头、摇镜、跟拍等）
+3. 光线和氛围描述
+4. 画面风格和质量要求
+直接输出优化后的提示词，不要添加任何说明。`;
 
-    const imageTypeDesc = imageType || '商品模特图';
-
-    const systemPrompt = `你是一位专业的AI视频生成提示词优化专家。你的任务是将用户简单的动作描述转化为专业、详细的AI视频生成提示词。
-
-核心原则：
-1. 保持原描述的核心意图不变
-2. 添加专业的动作细节描写（速度、幅度、轨迹）
-3. 补充环境氛围和光照描述
-4. 添加运动细节，让AI更容易理解和生成
-5. 使用英文输出（因为大多数AI视频模型使用英文训练）
-
-动作类型参考：
-- 行走(walk)：步伐节奏、重心变化、脚部动作
-- 旋转(rotate)：旋转速度、方向、幅度
-- 挥手(wave)：频率、幅度、表情配合
-- 舞蹈(dance)：节拍、舞步风格、律动方式
-
-请将以下动作描述优化为专业的AI视频生成提示词（英文），只返回优化后的提示词，不要添加其他内容。`;
-
-    const userPrompt = `原始动作描述：${prompt}
-动作类型：${poseDescriptions[pose] || '通用'}
-图片类型：${imageTypeDesc}
-
-请优化这段动作描述，生成专业的AI视频提示词。`;
-
-    const messages = [
-      { role: 'system' as const, content: systemPrompt },
-      { role: 'user' as const, content: userPrompt }
-    ];
-
-    // 流式响应
-    const stream = client.stream(messages, {
-      model: 'doubao-seed-1-6-lite-251015',
-      temperature: 0.7
-    });
-
-    let optimizedPrompt = '';
-    const encoder = new TextEncoder();
-
-    const readableStream = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            if (chunk.content) {
-              optimizedPrompt += chunk.content.toString();
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: chunk.content })}\n`));
-            }
-          }
-          controller.enqueue(encoder.encode('data: [DONE]\n'));
-          controller.close();
-        } catch (error) {
-          console.error('流式生成失败:', error);
-          controller.error(error);
-        }
-      }
-    });
-
-    return new Response(readableStream, {
+    const response = await fetch(VOLC_API_URL, {
+      method: 'POST',
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
+      body: JSON.stringify({
+        model: 'doubao-seed-1-5-25-0325',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `请优化以下动作描述：\n\n${prompt}\n\n直接输出优化后的提示词。` }
+        ],
+        max_tokens: 500,
+        temperature: 0.8
+      })
     });
 
-  } catch (error) {
-    console.error('视频提示词改写失败:', error);
-    return NextResponse.json({ 
-      error: '提示词改写失败，请稍后重试' 
-    }, { status: 500 });
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('方舟API错误:', response.status, errorData);
+      throw new Error(`API调用失败: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const optimizedPrompt = data.choices?.[0]?.message?.content || prompt;
+
+    return NextResponse.json({
+      success: true,
+      originalPrompt: prompt,
+      optimizedPrompt: optimizedPrompt.trim()
+    });
+
+  } catch (error: any) {
+    console.error('优化提示词失败:', error);
+    return NextResponse.json(
+      { error: error.message || '优化失败，请稍后重试' },
+      { status: 500 }
+    );
   }
 }

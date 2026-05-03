@@ -1,5 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ImageGenerationClient, Config } from 'coze-coding-dev-sdk';
+
+// 火山引擎配置
+const VOLC_REGION = 'cn-beijing';
+const IMAGE_API_URL = 'https://visual.volccdn.com/image';
+
+function getConfig() {
+  return {
+    accessKey: process.env.VOLC_ACCESSKEY,
+    secretKey: process.env.VOLC_SECRETKEY,
+    region: process.env.VOLC_REGION || VOLC_REGION,
+    apiKey: process.env.VOLC_API_KEY
+  };
+}
+
+// 简单的签名生成（用于火山引擎API）
+async function generateSignature(accessKey: string, secretKey: string, timestamp: number): Promise<string> {
+  const crypto = await import('crypto');
+  const stringToSign = `GET\n/image\naccess_key=${accessKey}&timestamp=${timestamp}`;
+  const hmac = crypto.createHmac('sha256', secretKey);
+  hmac.update(stringToSign);
+  return hmac.digest('base64');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,9 +29,8 @@ export async function POST(request: NextRequest) {
     const prompt = formData.get('prompt') as string;
     const style = formData.get('style') as string;
     const scene = formData.get('scene') as string;
-    const size = formData.get('size') as string || '800x800';
+    const size = formData.get('size') as string || '1024x1024';
 
-    // 验证必填字段
     if (!image && !prompt) {
       return NextResponse.json(
         { error: '请提供商品图片或描述提示' },
@@ -18,88 +38,104 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 创建图片URL（如果有上传图片）
+    const config = getConfig();
+    
+    // 如果没有配置火山密钥，返回错误提示
+    if (!config.accessKey || !config.secretKey) {
+      return NextResponse.json({
+        error: '请配置火山引擎AccessKey和SecretKey',
+        hint: '在环境变量中配置 VOLC_ACCESSKEY 和 VOLC_SECRETKEY',
+        details: '商品图生成需要火山引擎的图片生成服务'
+      }, { status: 400 });
+    }
+
+    // 构建提示词
+    const stylePrompts: Record<string, string> = {
+      realistic: 'realistic photography, professional lighting, high quality product photo',
+      fashion: 'fashion magazine style, trendy, stylish, editorial photography',
+      minimalist: 'minimalist style, clean white background, simple and elegant',
+      lifestyle: 'lifestyle photography, natural setting, warm atmosphere'
+    };
+
+    const scenePrompts: Record<string, string> = {
+      studio: 'professional photography studio, studio lighting',
+      outdoor: 'outdoor natural light, beautiful scenery',
+      indoor: 'modern indoor setting, bright and clean',
+      cafe: 'cozy cafe atmosphere, warm lighting',
+      street: 'urban street style, city backdrop',
+      beach: 'beach setting, sunny day, ocean'
+    };
+
+    let fullPrompt = prompt || '';
+    if (style && stylePrompts[style]) {
+      fullPrompt += ', ' + stylePrompts[style];
+    }
+    if (scene && scenePrompts[scene]) {
+      fullPrompt += ', ' + scenePrompts[scene];
+    }
+    fullPrompt += ', high quality, 4K, commercial photography';
+
+    // 处理上传的图片
     let imageUrl: string | undefined;
     if (image) {
-      // 将图片转换为base64
       const bytes = await image.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const base64 = buffer.toString('base64');
       imageUrl = `data:${image.type};base64,${base64}`;
     }
 
-    // 根据风格和场景构建提示词
-    const stylePrompts: Record<string, string> = {
-      realistic: 'professional photography, realistic lighting, high quality, 4K resolution',
-      fashion: 'fashion magazine style, trendy, chic, vogue photography',
-      minimalist: 'minimalist style, clean background, simple composition',
-      lifestyle: 'lifestyle photography, natural lighting, candid feel'
-    };
-
-    const scenePrompts: Record<string, string> = {
-      studio: 'in a professional photography studio, studio lighting, clean background',
-      outdoor: 'outdoor setting, natural light, beautiful scenery',
-      indoor: 'indoor setting, modern interior, well-lit space',
-      cafe: 'in a cozy cafe, warm lighting, coffee shop atmosphere',
-      street: 'street photography, urban environment, city backdrop',
-      beach: 'beach setting, ocean view, sunny day, natural light'
-    };
-
-    let fullPrompt = '';
+    // 调用火山引擎图片生成API
+    const timestamp = Date.now();
+    const signature = await generateSignature(config.accessKey, config.secretKey, timestamp);
     
+    const apiUrl = `${IMAGE_API_URL}?access_key=${config.accessKey}&timestamp=${timestamp}&signature=${signature}`;
+
+    const apiBody: any = {
+      prompt: fullPrompt,
+      model: 'general-v1.4',
+      aspect_ratio: size === '800x800' ? '1:1' : size === '1024x1024' ? '1:1' : '16:9',
+      extra_params: {
+        return_url: true
+      }
+    };
+
     if (imageUrl) {
-      // 如果有图片，进行图生图
-      fullPrompt = `Transform this product image into a professional model showcase. Product main image size: ${size}. `;
-      fullPrompt += `${stylePrompts[style] || stylePrompts.realistic}. `;
-      fullPrompt += `${scenePrompts[scene] || scenePrompts.studio}. `;
-      
-      if (prompt) {
-        fullPrompt += `Additional instructions: ${prompt}`;
-      }
-    } else {
-      // 纯文生图
-      fullPrompt = `Professional e-commerce product photography showing a model wearing the product. Product main image size: ${size}. `;
-      fullPrompt += `${stylePrompts[style] || stylePrompts.realistic}. `;
-      fullPrompt += `${scenePrompts[scene] || scenePrompts.studio}. `;
-      
-      if (prompt) {
-        fullPrompt += `${prompt}`;
-      }
+      apiBody.input_image = imageUrl;
     }
 
-    // 创建生图客户端
-    const config = new Config();
-    const client = new ImageGenerationClient(config);
-
-    const response = await client.generate({
-      prompt: fullPrompt,
-      size: '2K',
-      watermark: false,
-      image: imageUrl,
-      responseFormat: 'url'
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(apiBody)
     });
 
-    const helper = client.getResponseHelper(response);
-
-    if (helper.success && helper.imageUrls.length > 0) {
-      return NextResponse.json({
-        success: true,
-        images: helper.imageUrls
-      });
-    } else {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: helper.errorMessages.join(', ') || '图片生成失败' 
-        },
-        { status: 500 }
-      );
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('图片生成API错误:', response.status, errorText);
+      throw new Error(`API调用失败: ${response.status}`);
     }
 
-  } catch (error) {
-    console.error('生成图片失败:', error);
+    const data = await response.json();
+    
+    if (data.data?.images?.length > 0) {
+      return NextResponse.json({
+        success: true,
+        images: data.data.images.map((img: any) => ({
+          url: img.url,
+          width: img.width || 1024,
+          height: img.height || 1024
+        }))
+      });
+    }
+
+    throw new Error('图片生成失败');
+
+  } catch (error: any) {
+    console.error('生成商品图失败:', error);
     return NextResponse.json(
-      { success: false, error: '处理请求失败，请稍后重试' },
+      { error: error.message || '生成失败，请稍后重试' },
       { status: 500 }
     );
   }
