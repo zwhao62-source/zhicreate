@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'doubao-seed-1-5-25-0325',
+        model: 'doubao-seed-2-0-pro-250123',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `请优化以下动作描述：\n\n${prompt}\n\n直接输出优化后的提示词。` }

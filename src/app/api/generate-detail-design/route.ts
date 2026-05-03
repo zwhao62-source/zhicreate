@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'doubao-seed-1-5-25-0325',
+        model: 'doubao-seed-2-0-pro-250123',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
